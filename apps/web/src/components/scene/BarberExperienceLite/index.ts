@@ -1,0 +1,1 @@
+export { BarberExperienceLite } from './BarberExperienceLite';

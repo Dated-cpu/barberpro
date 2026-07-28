@@ -1,0 +1,1 @@
+export { BarberExperienceDynamic } from './BarberExperienceDynamic';
