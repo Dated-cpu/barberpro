@@ -97,7 +97,11 @@ export default function RegisterPage() {
             onChange={(v) => { setConsent(v); setError(''); }}
           />
 
-          {error ? <p className="text-xs text-error font-body">{error}</p> : null}
+          {error ? (
+            <div className="rounded-lg border border-error/30 bg-error-bg px-4 py-2.5">
+              <p className="text-xs text-error font-body">{error}</p>
+            </div>
+          ) : null}
 
           <Button type="submit" className="mt-2 w-full" loading={registerMutation.isPending}>
             Зарегистрироваться

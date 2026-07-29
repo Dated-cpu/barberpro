@@ -78,11 +78,12 @@ export function Header() {
 
         <div
           className={cn(
-            'overflow-hidden transition-all duration-300 md:hidden',
-            mobileOpen ? 'max-h-96' : 'max-h-0',
+            'overflow-y-auto transition-all duration-300 md:hidden',
+            mobileOpen ? 'max-h-[calc(100dvh-3.5rem)]' : 'max-h-0',
           )}
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="flex flex-col gap-1 px-4 sm:px-6 pb-4">
+          <div className="flex flex-col gap-1 px-4 sm:px-6 pb-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

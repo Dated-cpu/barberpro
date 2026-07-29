@@ -8,9 +8,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/shared/section-title';
 import { authStorage } from '@/lib/auth-storage';
+import { useToast } from '@/components/ui/toast';
+
+function getRedirectPath(role: string): string {
+  switch (role) {
+    case 'ADMIN':
+    case 'SUPER_ADMIN':
+      return '/admin';
+    case 'BARBER':
+      return '/barber/dashboard';
+    default:
+      return '/profile';
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [form, setForm] = useState({ login: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
@@ -18,10 +32,17 @@ export default function LoginPage() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
-      router.push('/profile');
+      addToast('Вход выполнен успешно', 'success');
+      router.push(getRedirectPath(data.user.role));
     },
     onError: (err) => {
-      setError(err.message);
+      const msg = err.message === 'Invalid credentials'
+        ? 'Неверный email/телефон или пароль'
+        : err.message === 'Account is deactivated'
+        ? 'Аккаунт деактивирован'
+        : err.message;
+      setError(msg);
+      addToast(msg, 'error');
     },
   });
 
@@ -29,7 +50,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     if (!form.login || !form.password) {
-      setError('Заполните все поля');
+      const msg = 'Заполните все поля';
+      setError(msg);
       return;
     }
     loginMutation.mutate({ ...form, rememberMe });
@@ -76,7 +98,11 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {error ? <p className="text-xs text-error font-body">{error}</p> : null}
+          {error ? (
+            <div className="rounded-lg border border-error/30 bg-error-bg px-4 py-2.5">
+              <p className="text-xs text-error font-body">{error}</p>
+            </div>
+          ) : null}
 
           <Button type="submit" className="mt-2 w-full" loading={loginMutation.isPending}>
             Войти

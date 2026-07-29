@@ -2,10 +2,24 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { trpc } from '@/trpc/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { authStorage } from '@/lib/auth-storage';
+
+function getRedirectPath(role: string): string {
+  switch (role) {
+    case 'ADMIN':
+    case 'SUPER_ADMIN':
+      return '/admin';
+    case 'BARBER':
+      return '/barber/dashboard';
+    default:
+      return '/profile';
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,12 +28,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   const loginMut = trpc.auth.login.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
       addToast('Вход выполнен успешно', 'success');
-      router.push('/dashboard');
+      router.push(getRedirectPath(data.user.role));
     },
     onError: (err) => {
-      addToast(err.message, 'error');
+      const msg = err.message === 'Invalid credentials'
+        ? 'Неверный email/телефон или пароль'
+        : err.message === 'Account is deactivated'
+        ? 'Аккаунт деактивирован'
+        : err.message;
+      addToast(msg, 'error');
     },
   });
 
@@ -59,6 +79,13 @@ export default function LoginPage() {
             Войти
           </Button>
         </form>
+
+        <p className="mt-6 text-center text-xs sm:text-sm text-text-tertiary font-body">
+          Нет аккаунта?{' '}
+          <Link href="/auth/register" className="text-accent hover:underline">
+            Зарегистрироваться
+          </Link>
+        </p>
       </div>
     </div>
   );
