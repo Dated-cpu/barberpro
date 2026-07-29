@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/shared/section-title';
 import { authStorage } from '@/lib/auth-storage';
 import { cn } from '@/lib/utils';
+import { ProfileHeader } from '@/components/profile/profile-header';
+import { UpcomingAppointmentCard, UpcomingAppointmentCardSkeleton, UpcomingAppointmentEmpty } from '@/components/profile/upcoming-appointment-card';
+import { AppointmentHistory } from '@/components/profile/appointment-history';
 import type { AuthUser } from '@/types/auth';
 
 type Tab = 'profile' | 'security';
@@ -45,18 +48,18 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         <SectionTitle
           title="Личный кабинет"
-          subtitle="Управление профилем и настройками"
+          subtitle="Управление профилем и записями"
           align="left"
           className="mb-6"
         />
 
-        <div className="mb-8 flex gap-2 border-b border-border">
+        <div className="mb-8 flex gap-2 border-b border-border overflow-x-auto">
           {[['profile', 'Профиль'] as const, ['security', 'Безопасность'] as const].map(([key, label]) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
               className={cn(
-                'min-h-11 px-4 py-3 text-sm font-body transition-colors border-b-2 -mb-px',
+                'min-h-11 shrink-0 px-4 py-3 text-sm font-body transition-colors border-b-2 -mb-px',
                 activeTab === key
                   ? 'border-accent text-accent'
                   : 'border-transparent text-text-secondary hover:text-text-primary',
@@ -75,6 +78,12 @@ export default function ProfilePage() {
 }
 
 function ProfileTab({ user }: { user: AuthUser }) {
+  const { data: upcoming, isPending: upcomingLoading } = trpc.appointment.myUpcoming.useQuery();
+  const [queryKey, setQueryKey] = useState(0);
+
+  const { data: userFull } = trpc.auth.me.useQuery();
+  const createdAt = (userFull as any)?.createdAt;
+
   const [form, setForm] = useState({
     firstName: user.firstName,
     lastName: user.lastName,
@@ -102,55 +111,62 @@ function ProfileTab({ user }: { user: AuthUser }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-bg-elevated text-xl font-semibold text-accent font-display">
-          {user.firstName[0]}{user.lastName[0]}
-        </div>
-        <div>
-          <h3 className="font-display text-lg font-semibold text-text-primary">
-            {user.firstName} {user.lastName}
-          </h3>
-          <p className="text-sm text-text-tertiary font-body">{user.email || user.phone}</p>
-        </div>
-      </div>
+      <ProfileHeader user={user} createdAt={createdAt} />
 
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
+      {upcomingLoading ? (
+        <UpcomingAppointmentCardSkeleton />
+      ) : upcoming ? (
+        <UpcomingAppointmentCard
+          key={queryKey}
+          appointment={upcoming as any}
+          onCancelled={() => setQueryKey((k) => k + 1)}
+        />
+      ) : (
+        <UpcomingAppointmentEmpty />
+      )}
+
+      <AppointmentHistory />
+
+      <div className="border-t border-border pt-6">
+        <h3 className="mb-4 font-display text-base font-semibold text-text-primary">Редактировать профиль</h3>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              id="firstName"
+              label="Имя"
+              value={form.firstName}
+              onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+            />
+            <Input
+              id="lastName"
+              label="Фамилия"
+              value={form.lastName}
+              onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+            />
+          </div>
           <Input
-            id="firstName"
-            label="Имя"
-            value={form.firstName}
-            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+            id="email"
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Input
-            id="lastName"
-            label="Фамилия"
-            value={form.lastName}
-            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+            id="phone"
+            label="Телефон"
+            type="tel"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
-        </div>
-        <Input
-          id="email"
-          label="Email"
-          type="email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
-        <Input
-          id="phone"
-          label="Телефон"
-          type="tel"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-        />
 
-        {success ? <p className="text-xs text-success font-body">{success}</p> : null}
-        {updateMutation.isError ? <p className="text-xs text-error font-body">{updateMutation.error.message}</p> : null}
+          {success ? <p className="text-xs text-success font-body">{success}</p> : null}
+          {updateMutation.isError ? <p className="text-xs text-error font-body">{updateMutation.error.message}</p> : null}
 
-        <div className="flex gap-3">
-          <Button onClick={handleSave} loading={updateMutation.isPending} className="w-full sm:w-auto">
-            Сохранить
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={handleSave} loading={updateMutation.isPending} className="w-full sm:w-auto">
+              Сохранить
+            </Button>
+          </div>
         </div>
       </div>
     </div>

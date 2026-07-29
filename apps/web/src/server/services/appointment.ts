@@ -190,6 +190,18 @@ export const appointmentService = {
     });
   },
 
+  async getMyUpcoming(clientId: string) {
+    return transaction(async (tx) => {
+      return appointmentRepository.findUpcomingByClient(tx, clientId);
+    });
+  },
+
+  async getMyHistory(clientId: string, opts?: { limit?: number; cursor?: string }) {
+    return transaction(async (tx) => {
+      return appointmentRepository.findHistoryByClient(tx, clientId, opts);
+    });
+  },
+
   async updateStatus(appointmentId: string, status: string, notes?: string) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);

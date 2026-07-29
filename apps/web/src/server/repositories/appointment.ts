@@ -134,7 +134,46 @@ export const appointmentRepository = {
       where: { clientId, deletedAt: null },
       select: {
         ...defaultSelect,
-        service: { select: { name: true } },
+        service: { select: { name: true, duration: true } },
+        barber: { select: { id: true, firstName: true, lastName: true } },
+      },
+      take: opts?.limit ?? 20,
+      ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
+      orderBy: { startTime: 'desc' },
+    });
+  },
+
+  async findUpcomingByClient(tx: TxClient, clientId: string) {
+    return tx.appointment.findFirst({
+      where: {
+        clientId,
+        deletedAt: null,
+        startTime: { gte: new Date() },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+      select: {
+        ...defaultSelect,
+        service: { select: { id: true, name: true, duration: true, price: true } },
+        barber: { select: { id: true, firstName: true, lastName: true } },
+        branch: { select: { id: true, name: true, address: true } },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+  },
+
+  async findHistoryByClient(tx: TxClient, clientId: string, opts?: { limit?: number; cursor?: string }) {
+    return tx.appointment.findMany({
+      where: {
+        clientId,
+        deletedAt: null,
+        OR: [
+          { status: { in: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] } },
+          { startTime: { lt: new Date() }, status: { notIn: ['PENDING', 'CONFIRMED'] } },
+        ],
+      },
+      select: {
+        ...defaultSelect,
+        service: { select: { id: true, name: true, duration: true } },
         barber: { select: { id: true, firstName: true, lastName: true } },
       },
       take: opts?.limit ?? 20,

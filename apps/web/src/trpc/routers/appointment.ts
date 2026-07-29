@@ -9,6 +9,7 @@ import {
   appointmentIdSchema,
   updateAppointmentStatusSchema,
   rescheduleAppointmentSchema,
+  clientAppointmentsSchema,
 } from '@/validators/booking';
 
 export const appointmentRouter = router({
@@ -91,6 +92,19 @@ export const appointmentRouter = router({
   getMyAppointments: protectedProcedure
     .query(async ({ ctx }) => {
       const appointments = await appointmentService.getMyAppointments(ctx.user!.id);
+      return appointments;
+    }),
+
+  myUpcoming: protectedProcedure
+    .query(async ({ ctx }) => {
+      const appointment = await appointmentService.getMyUpcoming(ctx.user!.id);
+      return appointment;
+    }),
+
+  myHistory: protectedProcedure
+    .input(clientAppointmentsSchema)
+    .query(async ({ ctx, input }) => {
+      const appointments = await appointmentService.getMyHistory(ctx.user!.id, input);
       return appointments;
     }),
 });
