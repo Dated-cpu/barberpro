@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure, barberProcedure } from '../trpc';
 import { appointmentService } from '../../server/services/appointment';
@@ -16,8 +17,10 @@ export const appointmentRouter = router({
   create: publicProcedure
     .input(createAppointmentSchema)
     .mutation(async ({ ctx, input }) => {
-      const clientId = ctx.user?.id ?? 'guest';
-      const appointment = await appointmentService.create({ ...input, clientId });
+      const appointment = await appointmentService.create({
+        ...input,
+        clientId: ctx.user?.id ?? undefined,
+      });
       return appointment;
     }),
 
@@ -84,9 +87,16 @@ export const appointmentRouter = router({
 
   getById: protectedProcedure
     .input(appointmentIdSchema)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const appointment = await appointmentService.getById(input.id);
-      return appointment;
+      if (!appointment) throw new TRPCError({ code: 'NOT_FOUND', message: 'Appointment not found' });
+
+      const role = ctx.user!.role;
+      if (role === 'ADMIN' || role === 'SUPER_ADMIN') return appointment;
+      if (role === 'BARBER' && appointment.barberId === ctx.user!.id) return appointment;
+      if (appointment.clientId === ctx.user!.id) return appointment;
+
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'У вас нет доступа к этой записи' });
     }),
 
   getMyAppointments: protectedProcedure

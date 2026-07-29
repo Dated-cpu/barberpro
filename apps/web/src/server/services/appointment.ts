@@ -3,14 +3,55 @@ import { transaction } from '../db/helpers';
 import prisma from '../db/client';
 import { appointmentRepository } from '../repositories/appointment';
 import { serviceRepository } from '../repositories/service';
+import { userRepository } from '../repositories/user';
 import { dispatchEvent, EventTypes } from '../lib/events';
 import logger from '../lib/logger';
 import { NotFoundError, ConflictError } from '../lib/errors';
 
+import type { TxClient } from '../db/helpers';
+
 import type { CreateAppointmentInput } from '@/validators/booking';
 
+async function resolveGuestClientId(
+  tx: TxClient,
+  clientId: string | undefined | null,
+  phone: string | undefined | null,
+  name: string | undefined | null,
+  email: string | undefined | null,
+): Promise<string> {
+  // Authenticated user — use their ID
+  if (clientId && clientId !== 'guest') return clientId;
+
+  // Try to find existing user by phone
+  const phone_ = phone?.trim();
+  if (!phone_) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Телефон обязателен для записи' });
+
+  const existing = await userRepository.findByPhone(tx, phone_);
+  if (existing) return existing.id;
+
+  // Create a temporary CLIENT user for guest booking
+  const name_ = name?.trim() || 'Гость';
+  const firstName = name_.split(' ')[0] || 'Гость';
+  const lastName = name_.split(' ').slice(1).join(' ') || 'Гость';
+
+  const guest = await tx.user.create({
+    data: {
+      firstName,
+      lastName,
+      phone: phone_,
+      email: email?.trim() || null,
+      role: 'CLIENT',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  logger.info('Guest user created for appointment', { userId: guest.id, phone: phone_ });
+  return guest.id;
+}
+
 export const appointmentService = {
-  async create(input: CreateAppointmentInput & { clientId: string }) {
+  async create(input: CreateAppointmentInput & { clientId?: string }) {
     return prisma.$transaction(async (tx) => {
       const service = await serviceRepository.findById(tx, input.serviceId);
       if (!service) throw new NotFoundError('Service');
@@ -45,8 +86,10 @@ export const appointmentService = {
         throw new ConflictError('Барбер не работает в это время');
       }
 
+      const clientId = await resolveGuestClientId(tx, input.clientId, input.clientPhone, input.clientName, input.clientEmail);
+
       const appointment = await appointmentRepository.create(tx, {
-        clientId: input.clientId,
+        clientId,
         barberId: input.barberId,
         serviceId: input.serviceId,
         branchId: branch?.id ?? null,
@@ -64,7 +107,7 @@ export const appointmentService = {
         aggregateId: appointment.id,
         payload: {
           appointmentId: appointment.id,
-          clientId: input.clientId,
+          clientId,
           barberId: input.barberId,
           serviceId: input.serviceId,
           startTime: startTime.toISOString(),
@@ -72,9 +115,9 @@ export const appointmentService = {
         },
       });
 
-      logger.info('Appointment created', { appointmentId: appointment.id, barberId: input.barberId });
+      logger.info('Appointment created', { appointmentId: appointment.id, barberId: input.barberId, clientId });
 
-      return appointment;
+      return { ...appointment, clientId };
     }, { isolationLevel: 'Serializable' });
   },
 

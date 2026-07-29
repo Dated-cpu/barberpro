@@ -1,9 +1,14 @@
-import { router, barberProcedure, adminProcedure } from '../trpc';
+import { router, publicProcedure, barberProcedure, adminProcedure } from '../trpc';
 import { serviceRepository } from '@/server/repositories/service';
 import { transaction } from '@/server/db/helpers';
 import { createServiceSchema, updateServiceSchema, serviceIdSchema, serviceListSchema } from '@/validators/services';
 
 export const servicesRouter = router({
+  listActive: publicProcedure
+    .query(async () => {
+      return transaction(async (tx) => serviceRepository.findActive(tx));
+    }),
+
   list: barberProcedure
     .input(serviceListSchema)
     .query(async ({ input }) => {

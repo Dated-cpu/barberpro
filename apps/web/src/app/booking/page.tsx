@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { trpc } from '@/trpc/client';
 import { SectionTitle } from '@/components/shared/section-title';
 import { Button } from '@/components/ui/button';
@@ -10,22 +10,22 @@ import { SlotSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { ConsentType } from '@/lib/legal';
 
-type Step = 'service' | 'date' | 'info' | 'confirm';
+type Step = 'service' | 'barber' | 'date' | 'info' | 'confirm';
 
-const services = [
-  { id: '1', name: 'Мужская стрижка', price: 2500, duration: 60 },
-  { id: '2', name: 'Стрижка машинкой', price: 2000, duration: 45 },
-  { id: '3', name: 'Королевское бритьё', price: 3000, duration: 60 },
-  { id: '4', name: 'Моделирование бороды', price: 1500, duration: 30 },
-  { id: '5', name: 'Стрижка + бритьё', price: 4000, duration: 90 },
-  { id: '6', name: 'Укладка', price: 1000, duration: 20 },
-];
+interface AppointmentResult {
+  id: string;
+  startTime: string;
+  serviceName: string;
+  barberName: string;
+}
 
 export default function BookingPage() {
   const [step, setStep] = useState<Step>('service');
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [appointmentResult, setAppointmentResult] = useState<AppointmentResult | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
   const [consents, setConsents] = useState<Record<string, boolean>>({
     privacy: false,
@@ -36,13 +36,17 @@ export default function BookingPage() {
   const [consentError, setConsentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const { data: services, isPending: servicesLoading } = trpc.services.listActive.useQuery();
+  const { data: barbers, isPending: barbersLoading } = trpc.barbers.listActive.useQuery();
   const recordConsent = trpc.consent.record.useMutation();
+  const createAppointment = trpc.appointment.create.useMutation();
 
-  const service = services.find((s) => s.id === selectedService);
+  const selectedService = services?.find((s) => s.id === selectedServiceId);
+  const selectedBarber = barbers?.find((b) => b.id === selectedBarberId);
 
   const { data: availableSlots, isFetching: slotsLoading } = trpc.availability.getAvailableSlots.useQuery(
-    { barberId: '1', date: selectedDate || '', serviceId: selectedService || '' },
-    { enabled: !!selectedDate && !!selectedService },
+    { barberId: selectedBarberId || '', date: selectedDate || '', serviceId: selectedServiceId || '' },
+    { enabled: !!selectedDate && !!selectedBarberId && !!selectedServiceId },
   );
 
   const today = new Date();
@@ -52,7 +56,7 @@ export default function BookingPage() {
     return d;
   });
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = async () => {
     const allAccepted = Object.values(consents).every(Boolean);
     if (!allAccepted) {
       setConsentError('Необходимо принять все условия');
@@ -62,28 +66,50 @@ export default function BookingPage() {
     setSubmitting(true);
 
     try {
+      const startTime = `${selectedDate}T${selectedSlot}:00+03:00`;
+
       await Promise.all(
         Object.entries(consents)
           .filter(([, v]) => v)
           .map(([type]) => recordConsent.mutateAsync({ consentType: type as ConsentType })),
       );
+
+      const result = await createAppointment.mutateAsync({
+        barberId: selectedBarberId!,
+        serviceId: selectedServiceId!,
+        startTime,
+        clientName: form.name,
+        clientPhone: form.phone,
+        clientEmail: form.email || undefined,
+      });
+
+      setAppointmentResult({
+        id: result.id,
+        startTime: startTime,
+        serviceName: selectedService?.name || '',
+        barberName: selectedBarber ? `${selectedBarber.firstName} ${selectedBarber.lastName}` : '',
+      });
       setStep('confirm');
-    } catch {
-      setConsentError('Ошибка при отправке согласия. Попробуйте снова.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка при создании записи. Попробуйте снова.';
+      setConsentError(message);
     } finally {
       setSubmitting(false);
     }
-  }, [consents, recordConsent]);
+  };
 
   const reset = () => {
     setStep('service');
-    setSelectedService(null);
+    setSelectedServiceId(null);
+    setSelectedBarberId(null);
     setSelectedDate(null);
     setSelectedSlot(null);
+    setAppointmentResult(null);
     setForm({ name: '', phone: '', email: '' });
+    setConsents({ privacy: false, terms: false, personalData: false, bookingRules: false });
   };
 
-  const stepOrder: Step[] = ['service', 'date', 'info'];
+  const stepOrder: Step[] = ['service', 'barber', 'date', 'info'];
   const currentStepIndex = stepOrder.indexOf(step);
   const isStepComplete = (s: Step) => stepOrder.indexOf(s) < currentStepIndex || step === 'confirm';
 
@@ -95,9 +121,9 @@ export default function BookingPage() {
           subtitle="Выберите услугу, дату и время"
         />
 
-        <div className="mb-6 sm:mb-8 flex items-center justify-center gap-1 sm:gap-2">
-          {(['service', 'date', 'info'] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center gap-1 sm:gap-2">
+        <div className="mb-6 sm:mb-8 flex items-center justify-center gap-1 sm:gap-2 overflow-x-auto pb-1">
+          {(['service', 'barber', 'date', 'info'] as Step[]).map((s, i) => (
+            <div key={s} className="flex items-center gap-1 sm:gap-2 shrink-0">
               <div className={cn(
                 'flex h-9 sm:h-8 w-9 sm:w-8 items-center justify-center rounded-full text-xs sm:text-xs font-semibold transition-colors font-body',
                 step === s
@@ -112,7 +138,7 @@ export default function BookingPage() {
                   i + 1
                 )}
               </div>
-              {i < 2 && (
+              {i < 3 && (
                 <div className={cn(
                   'h-px w-6 sm:w-12',
                   isStepComplete(s) || step === s ? 'bg-accent' : 'bg-border',
@@ -124,22 +150,60 @@ export default function BookingPage() {
 
         {step === 'service' && (
           <div className="flex flex-col gap-3">
-            {services.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => { setSelectedService(s.id); setStep('date'); }}
-                className={cn(
-                  'flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 min-h-[60px]',
-                  selectedService === s.id ? 'border-accent bg-accent-muted' : 'border-border bg-bg-elevated hover:border-accent/50',
-                )}
-              >
-                <div className="min-w-0 flex-1 pr-3">
-                  <h3 className="font-display text-base font-semibold text-text-primary truncate">{s.name}</h3>
-                  <p className="text-sm text-text-tertiary font-body">{s.duration} мин</p>
-                </div>
-                <span className="text-base sm:text-lg font-semibold text-accent shrink-0">{s.price.toLocaleString()} ₽</span>
-              </button>
-            ))}
+            {servicesLoading ? (
+              <div className="flex flex-col gap-3 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-[60px] rounded-xl bg-bg-elevated" />
+                ))}
+              </div>
+            ) : services && services.length > 0 ? (
+              services.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { setSelectedServiceId(s.id); setStep('barber'); }}
+                  className={cn(
+                    'flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 min-h-[60px]',
+                    selectedServiceId === s.id ? 'border-accent bg-accent-muted' : 'border-border bg-bg-elevated hover:border-accent/50',
+                  )}
+                >
+                  <div className="min-w-0 flex-1 pr-3">
+                    <h3 className="font-display text-base font-semibold text-text-primary truncate">{s.name}</h3>
+                    <p className="text-sm text-text-tertiary font-body">{s.duration} мин</p>
+                  </div>
+                  <span className="text-base sm:text-lg font-semibold text-accent shrink-0">{Number(s.price).toLocaleString('ru-RU')} ₽</span>
+                </button>
+              ))
+            ) : (
+              <p className="text-sm text-text-tertiary font-body text-center py-8">Услуги временно недоступны</p>
+            )}
+          </div>
+        )}
+
+        {step === 'barber' && (
+          <div className="flex flex-col gap-3">
+            <h3 className="mb-1 text-sm font-semibold text-text-primary font-body">Выберите барбера</h3>
+            {barbersLoading ? (
+              <div className="flex flex-col gap-3 animate-pulse">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-[52px] rounded-xl bg-bg-elevated" />
+                ))}
+              </div>
+            ) : barbers && barbers.length > 0 ? (
+              barbers.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => { setSelectedBarberId(b.id); setStep('date'); }}
+                  className={cn(
+                    'rounded-xl border p-3 text-left transition-all duration-200',
+                    selectedBarberId === b.id ? 'border-accent bg-accent-muted' : 'border-border bg-bg-elevated hover:border-accent/50',
+                  )}
+                >
+                  <span className="font-display font-semibold text-text-primary">{b.firstName} {b.lastName}</span>
+                </button>
+              ))
+            ) : (
+              <p className="text-sm text-text-tertiary font-body text-center py-8">Барберы временно недоступны</p>
+            )}
           </div>
         )}
 
@@ -157,7 +221,7 @@ export default function BookingPage() {
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
+                      onClick={() => { setSelectedDate(dateStr); setSelectedSlot(null); }}
                       className={cn(
                         'flex min-w-[72px] snap-start flex-col items-center gap-1 rounded-xl border p-3 transition-all duration-200 touch-action-manipulation',
                         isSelected ? 'border-accent bg-accent-muted' : 'border-border bg-bg-elevated hover:border-accent/50',
@@ -199,6 +263,12 @@ export default function BookingPage() {
                 )}
               </div>
             )}
+
+            <div className="mt-6 flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep('barber')}>
+                Назад
+              </Button>
+            </div>
           </div>
         )}
 
@@ -257,13 +327,18 @@ export default function BookingPage() {
               ) : null}
             </div>
 
-            <Button onClick={handleConfirm} className="mt-2 w-full sm:w-auto" disabled={!form.name || !form.phone || submitting} loading={submitting}>
-              Подтвердить запись
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep('date')}>
+                Назад
+              </Button>
+              <Button onClick={handleConfirm} className="flex-1 sm:flex-none" disabled={!form.name || !form.phone || submitting} loading={submitting}>
+                Подтвердить запись
+              </Button>
+            </div>
           </div>
         )}
 
-        {step === 'confirm' && (
+        {step === 'confirm' && appointmentResult && (
           <div className="rounded-xl border border-accent/50 bg-accent-muted p-6 sm:p-8 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-success-bg">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
@@ -274,10 +349,11 @@ export default function BookingPage() {
             <p className="mb-6 text-sm sm:text-base text-text-secondary font-body">Мы отправили подтверждение на ваш телефон</p>
 
             <div className="mx-auto max-w-sm space-y-2 text-left text-sm text-text-secondary font-body">
-              {service && <p><span className="text-text-primary">Услуга:</span> {service.name}</p>}
-              {selectedDate && <p><span className="text-text-primary">Дата:</span> {new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
-              {selectedSlot && <p><span className="text-text-primary">Время:</span> {selectedSlot.slice(0, 5)}</p>}
-              {form.name && <p><span className="text-text-primary">Имя:</span> {form.name}</p>}
+              <p><span className="text-text-primary">Услуга:</span> {appointmentResult.serviceName}</p>
+              <p><span className="text-text-primary">Барбер:</span> {appointmentResult.barberName}</p>
+              <p><span className="text-text-primary">Дата:</span> {new Date(appointmentResult.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <p><span className="text-text-primary">Время:</span> {new Date(appointmentResult.startTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</p>
+              <p><span className="text-text-primary">Имя:</span> {form.name}</p>
             </div>
 
             <Button onClick={reset} className="mt-8" variant="secondary">

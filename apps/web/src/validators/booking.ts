@@ -8,8 +8,9 @@ export const createAppointmentSchema = z.object({
   branchId: z.string().uuid().nullable().optional(),
   startTime: z.string().datetime({ offset: true }),
   clientNotes: z.string().max(500).optional().nullable(),
-  clientPhone: z.string().regex(phoneRegex, 'Некорректный номер телефона. Формат: +7XXXXXXXXXX').optional(),
-  clientName: z.string().min(2).max(100).optional(),
+  clientPhone: z.string().regex(phoneRegex, 'Некорректный номер телефона. Формат: +7XXXXXXXXXX'),
+  clientName: z.string().min(2).max(100),
+  clientEmail: z.string().email().optional().nullable(),
 });
 
 export const cancelAppointmentSchema = z.object({

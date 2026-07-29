@@ -3,6 +3,7 @@ import { authRouter } from './auth';
 import { adminRouter } from './admin';
 import { availabilityRouter } from './availability';
 import { appointmentRouter } from './appointment';
+import { barbersRouter } from './barbers';
 import { consentRouter } from './consent';
 import { dashboardRouter } from './dashboard';
 import { customersRouter } from './customers';
@@ -17,6 +18,7 @@ export const appRouter = router({
   admin: adminRouter,
   availability: availabilityRouter,
   appointment: appointmentRouter,
+  barbers: barbersRouter,
   consent: consentRouter,
   dashboard: dashboardRouter,
   customers: customersRouter,
