@@ -33,7 +33,7 @@ export default function LoginPage() {
     onSuccess: (data) => {
       authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
       addToast('Вход выполнен успешно', 'success');
-      router.push(getRedirectPath(data.user.role));
+      setTimeout(() => router.push(getRedirectPath(data.user.role)), 150);
     },
     onError: (err) => {
       const msg = err.message === 'Invalid credentials'
@@ -42,7 +42,6 @@ export default function LoginPage() {
         ? 'Аккаунт деактивирован'
         : err.message;
       setError(msg);
-      addToast(msg, 'error');
     },
   });
 

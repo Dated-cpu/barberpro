@@ -26,12 +26,13 @@ export default function LoginPage() {
   const { addToast } = useToast();
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const loginMut = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
       addToast('Вход выполнен успешно', 'success');
-      router.push(getRedirectPath(data.user.role));
+      setTimeout(() => router.push(getRedirectPath(data.user.role)), 150);
     },
     onError: (err) => {
       const msg = err.message === 'Invalid credentials'
@@ -39,12 +40,13 @@ export default function LoginPage() {
         : err.message === 'Account is deactivated'
         ? 'Аккаунт деактивирован'
         : err.message;
-      addToast(msg, 'error');
+      setError(msg);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     loginMut.mutate({ login, password });
   };
 
@@ -75,6 +77,12 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          {error ? (
+            <div className="rounded-lg border border-error/30 bg-error-bg px-4 py-2.5">
+              <p className="text-xs text-error font-body">{error}</p>
+            </div>
+          ) : null}
+
           <Button type="submit" loading={loginMut.isPending} className="mt-2">
             Войти
           </Button>
