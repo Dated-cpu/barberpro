@@ -66,7 +66,27 @@ export const adminService = {
         _count: { select: { barberAppointments: true } },
       },
     });
-    return user;
+    if (!user) return null;
+
+    const [reviews, uniqueClients] = await Promise.all([
+      prisma.review.aggregate({
+        where: { appointment: { barberId: id }, status: 'APPROVED', deletedAt: null },
+        _avg: { rating: true },
+        _count: true,
+      }),
+      prisma.appointment.groupBy({
+        by: ['clientId'],
+        where: { barberId: id, deletedAt: null },
+        _count: { clientId: true },
+      }),
+    ]);
+
+    return {
+      ...user,
+      averageRating: reviews._avg.rating ?? 0,
+      totalReviews: reviews._count,
+      totalClients: uniqueClients.length,
+    };
   },
 
   async updateBarber(id: string, data: {
@@ -250,5 +270,69 @@ export const adminService = {
       })),
       nextCursor: hasMore ? items[items.length - 1]?.id ?? null : null,
     };
+  },
+
+  async listAllUsers(search?: string, role?: string, limit = 50, cursor?: string) {
+    const where: Record<string, unknown> = { deletedAt: null };
+    if (role) where.role = role;
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+      ];
+    }
+
+    const users = await prisma.user.findMany({
+      where,
+      take: limit + 1,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, firstName: true, lastName: true, email: true, phone: true,
+        role: true, isActive: true, lastLogin: true, createdAt: true,
+      },
+    });
+
+    const hasMore = users.length > limit;
+    const items = hasMore ? users.slice(0, limit) : users;
+
+    return {
+      items,
+      nextCursor: hasMore ? items[items.length - 1]?.id ?? null : null,
+    };
+  },
+
+  async updateUser(id: string, data: { firstName?: string; lastName?: string; email?: string; phone?: string; isActive?: boolean; role?: string }) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.firstName !== undefined && { firstName: data.firstName }),
+        ...(data.lastName !== undefined && { lastName: data.lastName }),
+        ...(data.email !== undefined && { email: data.email }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.role !== undefined && { role: data.role as any }),
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isActive: true },
+    });
+  },
+
+  async listAuditEntityTypes() {
+    const result = await prisma.auditLog.findMany({
+      distinct: ['entityType'],
+      select: { entityType: true },
+      where: { entityType: { not: null as any } },
+    });
+    return result.map((r) => r.entityType).filter(Boolean);
+  },
+
+  async deleteUser(id: string) {
+    return prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: { id: true, deletedAt: true },
+    });
   },
 };

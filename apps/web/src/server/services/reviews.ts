@@ -60,6 +60,13 @@ export const reviewService = {
     });
   },
 
+  async delete(reviewId: string) {
+    return prisma.review.update({
+      where: { id: reviewId },
+      data: { deletedAt: new Date() },
+    });
+  },
+
   async getStats(barberId?: string) {
     const where: Record<string, unknown> = { deletedAt: null };
     if (barberId) where.appointment = { barberId };

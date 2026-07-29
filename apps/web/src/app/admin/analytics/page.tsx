@@ -17,7 +17,7 @@ export default function AdminAnalytics() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Аналитика</h1>
+        <div />
         <div className="flex items-center gap-2">
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
             className="rounded-lg border border-border bg-bg-secondary px-3 py-1.5 text-sm text-text-primary font-body" />

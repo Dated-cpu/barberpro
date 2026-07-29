@@ -17,10 +17,16 @@ const breadcrumbMap: Record<string, string> = {
   'portfolio': 'Портфолио',
   'reviews': 'Отзывы',
   'settings': 'Настройки',
+  'barbers': 'Барберы',
+  'clients': 'Клиенты',
+  'branches': 'Филиалы',
+  'analytics': 'Аналитика',
+  'audit': 'Аудит',
 };
 
 function getBreadcrumbs(pathname: string) {
-  const segments = pathname.replace(/^\/barber\/?/, '').split('/').filter(Boolean);
+  const cleaned = pathname.replace(/^\/(barber|admin)\/?/, '');
+  const segments = cleaned.split('/').filter(Boolean);
   return segments.length > 0 ? segments.map((s) => breadcrumbMap[s] ?? s) : ['Панель управления'];
 }
 

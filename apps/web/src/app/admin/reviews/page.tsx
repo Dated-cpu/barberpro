@@ -23,10 +23,14 @@ export default function AdminReviews() {
     onError: (e) => addToast(e.message, 'error'),
   });
 
+  const deleteMut = trpc.reviews.adminDelete.useMutation({
+    onSuccess: () => { utils.reviews.adminList.invalidate(); utils.reviews.adminStats.invalidate(); addToast('Отзыв удалён', 'success'); },
+    onError: (e) => addToast(e.message, 'error'),
+  });
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Отзывы</h1>
+      <div className="flex items-center justify-end">
         <div className="flex gap-3 text-sm text-text-tertiary font-body">
           {stats ? <><span>Всего: {stats.total}</span><span className="text-warning">Ожидают: {stats.pending}</span></> : null}
         </div>
@@ -66,12 +70,15 @@ export default function AdminReviews() {
                 <Badge variant={statusColors[r.status]}>{statusLabels[r.status]}</Badge>
               </div>
               {r.text ? <p className="mb-3 text-sm text-text-secondary font-body leading-relaxed">{r.text}</p> : null}
-              {r.status === 'PENDING' ? (
-                <div className="flex gap-2">
-                  <Button size="sm" variant="primary" onClick={() => moderateMut.mutate({ reviewId: r.id, status: 'APPROVED' })}>Одобрить</Button>
-                  <Button size="sm" variant="danger" onClick={() => moderateMut.mutate({ reviewId: r.id, status: 'REJECTED' })}>Отклонить</Button>
-                </div>
-              ) : null}
+              <div className="flex gap-2">
+                {r.status === 'PENDING' ? (
+                  <>
+                    <Button size="sm" variant="primary" onClick={() => moderateMut.mutate({ reviewId: r.id, status: 'APPROVED' })}>Одобрить</Button>
+                    <Button size="sm" variant="danger" onClick={() => moderateMut.mutate({ reviewId: r.id, status: 'REJECTED' })}>Отклонить</Button>
+                  </>
+                ) : null}
+                <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate({ reviewId: r.id })}>Удалить</Button>
+              </div>
             </Card>
           ))
         ) : (

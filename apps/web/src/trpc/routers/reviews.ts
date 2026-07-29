@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { router, barberProcedure, adminProcedure } from '../trpc';
 import { reviewService } from '@/server/services/reviews';
 import { moderateReviewSchema, reviewListSchema } from '@/validators/reviews';
@@ -34,4 +35,10 @@ export const reviewsRouter = router({
   adminStats: adminProcedure.query(async () => {
     return reviewService.getStats();
   }),
+
+  adminDelete: adminProcedure
+    .input(z.object({ reviewId: z.string().uuid() }))
+    .mutation(async ({ input }) => {
+      return reviewService.delete(input.reviewId);
+    }),
 });

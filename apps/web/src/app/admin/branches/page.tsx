@@ -48,8 +48,7 @@ export default function AdminBranches() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Филиалы</h1>
+      <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => { setEditingId(null); resetForm(); setShowCreate(true); }}>Создать филиал</Button>
       </div>
 

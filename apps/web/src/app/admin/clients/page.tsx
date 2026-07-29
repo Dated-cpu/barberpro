@@ -12,8 +12,7 @@ export default function AdminClients() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Клиенты</h1>
+      <div className="flex items-center justify-end">
         <Input id="client-search" placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-56" />
       </div>
 

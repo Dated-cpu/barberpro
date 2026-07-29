@@ -46,8 +46,7 @@ export default function AdminBarbers() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Барберы</h1>
+      <div className="flex items-center justify-end">
         <Input id="barber-search" placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-56" />
       </div>
 
@@ -72,8 +71,11 @@ export default function AdminBarbers() {
 
           {barberDetail && (
             <div className="rounded-lg border border-border bg-bg-secondary p-3 text-xs text-text-tertiary font-body">
-              <p>Записей: {barberDetail._count?.barberAppointments ?? 0}</p>
-              <p>Филиал: {barberDetail.branchAssignments?.[0]?.branch?.name ?? 'Не назначен'}</p>
+              <p>Записей: {(barberDetail as any)._count?.barberAppointments ?? 0}</p>
+              <p>Клиентов: {(barberDetail as any).totalClients ?? 0}</p>
+              <p>Рейтинг: {(barberDetail as any).averageRating ? Number((barberDetail as any).averageRating).toFixed(1) + ' ★' : 'Нет оценок'}</p>
+              <p>Отзывов: {(barberDetail as any).totalReviews ?? 0}</p>
+              <p>Филиал: {(barberDetail as any).branchAssignments?.[0]?.branch?.name ?? 'Не назначен'}</p>
               {barberDetail.lastLogin ? <p>Последний вход: {new Date(barberDetail.lastLogin).toLocaleDateString('ru-RU')}</p> : null}
             </div>
           )}
