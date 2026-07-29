@@ -1,55 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { GoldThread } from '@/components/shared/gold-thread';
 import { SectionTitle } from '@/components/shared/section-title';
 import { Reveal } from '@/components/shared/reveal';
-import { BarberExperienceDynamic } from '@/components/scene/BarberExperienceDynamic';
+import { HeroCinematic } from '@/components/hero/hero-cinematic';
 
 export default function Home() {
   return (
     <>
-      <section className="relative flex min-h-screen items-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-obsidian via-obsidian to-espresso/60" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--color-gold-glow)_0%,_transparent_60%)] opacity-30" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,_rgba(201,169,110,0.04)_0%,_transparent_50%)]" />
-
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 py-20 md:py-32">
-          <div className="max-w-2xl">
-            <Reveal animation="fade-up" delay={200}>
-              <p className="mb-4 sm:mb-6 font-body text-[10px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.3em] text-gold">
-                Premium Barber Shop
-              </p>
-            </Reveal>
-            <Reveal animation="fade-up" delay={400}>
-              <h1 className="mb-6 sm:mb-8 font-display text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-bold leading-[1.1] sm:leading-tight text-ivory">
-                Искусство
-                <br />
-                <span className="text-gold">мужского стиля</span>
-              </h1>
-            </Reveal>
-            <Reveal animation="fade-up" delay={600}>
-              <GoldThread className="mb-6 sm:mb-8 w-20 sm:w-24" />
-            </Reveal>
-            <Reveal animation="fade-up" delay={700}>
-              <p className="mb-8 sm:mb-10 max-w-lg text-sm sm:text-base text-stone font-body leading-relaxed">
-                Премиальные стрижки, бритьё и уход. Индивидуальный подход и профессиональная косметика.
-              </p>
-            </Reveal>
-            <Reveal animation="fade-up" delay={800}>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <Link href="/booking" className="w-full sm:w-auto">
-                  <Button size="lg" variant="primary" className="w-full sm:w-auto">Записаться онлайн</Button>
-                </Link>
-                <Link href="/services" className="w-full sm:w-auto">
-                  <Button size="lg" variant="secondary" className="w-full sm:w-auto">Наши услуги</Button>
-                </Link>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-obsidian to-transparent" />
-      </section>
+      <HeroCinematic />
 
       <section className="content-below-fold relative py-16 sm:py-20 md:py-24 lg:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -76,10 +34,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <Reveal>
-        <BarberExperienceDynamic />
-      </Reveal>
 
       <section className="content-below-fold relative py-16 sm:py-20 md:py-24 lg:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
