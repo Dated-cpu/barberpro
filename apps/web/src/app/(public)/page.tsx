@@ -7,7 +7,15 @@ import { HeroCinematic } from '@/components/hero/hero-cinematic';
 export default function Home() {
   return (
     <>
-      <HeroCinematic />
+      <HeroCinematic
+        master={{
+          name: 'Александр',
+          profession: 'Барбер',
+          experience: '7 лет опыта',
+          rating: 4.9,
+          clientsCount: 3500,
+        }}
+      />
 
       <section className="content-below-fold relative py-16 sm:py-20 md:py-24 lg:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
