@@ -132,7 +132,7 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Календарь</h1>
+        <div />
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" onClick={() => { setShowManualCreate(true); setNewAppt({ ...newAppt, startTime: new Date().toISOString().slice(0, 16) }); }}>+ Запись</Button>
           <Button size="sm" variant="secondary" onClick={() => setShowBlockSlot(true)}>Блокировка</Button>

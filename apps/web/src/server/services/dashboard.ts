@@ -62,28 +62,82 @@ export const dashboardService = {
     todayStart.setHours(0, 0, 0, 0);
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(now);
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStart = new Date(tomorrow);
+    tomorrowStart.setHours(0, 0, 0, 0);
+    const tomorrowEnd = new Date(tomorrow);
+    tomorrowEnd.setHours(23, 59, 59, 999);
 
-    const [todayStats, weeklyAppointments, totalClients] = await Promise.all([
+    const [
+      todayStats,
+      weeklyCompleted,
+      totalClients,
+      weeklyAppointments,
+      monthlyFullAppointments,
+      tomorrowAppointments,
+      newReviews,
+    ] = await Promise.all([
       this.getTodayStats(barberId, now),
       prisma.appointment.count({
-        where: {
-          barberId,
-          startTime: { gte: weekAgo },
-          deletedAt: null,
-          status: 'COMPLETED',
-        },
+        where: { barberId, startTime: { gte: weekAgo }, deletedAt: null, status: 'COMPLETED' },
       }),
       prisma.appointment.groupBy({
         by: ['clientId'],
         where: { barberId, deletedAt: null },
         _count: { clientId: true },
       }),
+      prisma.appointment.findMany({
+        where: {
+          barberId,
+          startTime: { gte: weekAgo },
+          deletedAt: null,
+          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+        select: { priceAtBooking: true },
+      }),
+      prisma.appointment.findMany({
+        where: {
+          barberId,
+          startTime: { gte: monthAgo },
+          deletedAt: null,
+          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+        select: { priceAtBooking: true },
+      }),
+      prisma.appointment.count({
+        where: {
+          barberId,
+          startTime: { gte: tomorrowStart, lte: tomorrowEnd },
+          deletedAt: null,
+          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+      }),
+      prisma.review.count({
+        where: {
+          appointment: { barberId },
+          createdAt: { gte: weekAgo },
+          deletedAt: null,
+        },
+      }),
     ]);
+
+    const weeklyRevenue = weeklyAppointments.reduce((s, a) => s + Number(a.priceAtBooking), 0);
+    const monthlyAppts = monthlyFullAppointments.length;
+    const avgCheck = monthlyAppts > 0
+      ? monthlyFullAppointments.reduce((s, a) => s + Number(a.priceAtBooking), 0) / monthlyAppts
+      : 0;
 
     return {
       today: todayStats,
-      weeklyCompleted: weeklyAppointments,
+      weeklyCompleted,
       totalUniqueClients: totalClients.length,
+      weeklyRevenue,
+      avgCheck: Math.round(avgCheck),
+      tomorrowAppointments,
+      newReviews,
     };
   },
 

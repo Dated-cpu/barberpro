@@ -12,9 +12,11 @@ const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 export default function SettingsPage() {
   const { addToast } = useToast();
   const utils = trpc.useUtils();
+  const { data: user } = trpc.auth.me.useQuery();
   const { data: workingDays } = trpc.settings.getWorkingDays.useQuery();
   const { data: blockedSlots } = trpc.settings.getBlockedSlots.useQuery();
 
+  const [profileForm, setProfileForm] = useState<{ firstName: string; lastName: string; phone: string } | null>(null);
   const [blockReason, setBlockReason] = useState('');
   const [blockStart, setBlockStart] = useState('');
   const [blockEnd, setBlockEnd] = useState('');
@@ -33,10 +35,53 @@ export default function SettingsPage() {
     onSuccess: () => { utils.settings.getBlockedSlots.invalidate(); addToast('Блокировка удалена', 'success'); },
   });
 
+  const updateProfileMut = trpc.settings.updateProfile.useMutation({
+    onSuccess: () => { utils.auth.me.invalidate(); addToast('Профиль обновлён', 'success'); },
+    onError: (e) => addToast(e.message, 'error'),
+  });
+
+  function handleProfileSave() {
+    if (!profileForm) return;
+    updateProfileMut.mutate(profileForm);
+  }
+
   return (
     <div className="flex flex-col gap-8">
+      {/* Profile Editor */}
       <div>
-        <h1 className="mb-6 font-display text-2xl font-bold text-text-primary">Настройки</h1>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Профиль</h2>
+        <Card className="p-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              id="pf-firstname"
+              label="Имя"
+              value={profileForm?.firstName ?? user?.firstName ?? ''}
+              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), firstName: e.target.value })}
+            />
+            <Input
+              id="pf-lastname"
+              label="Фамилия"
+              value={profileForm?.lastName ?? user?.lastName ?? ''}
+              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), lastName: e.target.value })}
+            />
+            <Input
+              id="pf-phone"
+              label="Телефон"
+              value={profileForm?.phone ?? user?.phone ?? ''}
+              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), phone: e.target.value })}
+            />
+            <Input
+              id="pf-email"
+              label="Email"
+              value={user?.email ?? ''}
+              disabled
+              className="opacity-50"
+            />
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" onClick={handleProfileSave} loading={updateProfileMut.isPending}>Сохранить</Button>
+          </div>
+        </Card>
       </div>
 
       <div>

@@ -58,13 +58,12 @@ export default function BarberDashboard() {
     );
   }
 
-  const { today } = overview ?? { today: { totalAppointments: 0, totalRevenue: 0, totalDuration: 0, loadPercent: 0, nextAppointment: null, appointments: [] } };
+  const { today, weeklyRevenue = 0, avgCheck = 0, tomorrowAppointments = 0, newReviews = 0 } = overview
+    ?? { today: { totalAppointments: 0, totalRevenue: 0, totalDuration: 0, loadPercent: 0, nextAppointment: null, appointments: [] } };
   const nextAppointment = today.nextAppointment;
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-bold text-text-primary">Панель управления</h1>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5">
           <p className="mb-1 text-xs text-text-tertiary font-body">Записей сегодня</p>
@@ -86,6 +85,22 @@ export default function BarberDashboard() {
         <Card className="p-5">
           <p className="mb-1 text-xs text-text-tertiary font-body">Активных клиентов</p>
           <p className="font-display text-3xl font-bold text-text-primary">{overview?.totalUniqueClients ?? 0}</p>
+        </Card>
+        <Card className="p-5">
+          <p className="mb-1 text-xs text-text-tertiary font-body">Записи на завтра</p>
+          <p className="font-display text-3xl font-bold text-text-primary">{tomorrowAppointments}</p>
+        </Card>
+        <Card className="p-5">
+          <p className="mb-1 text-xs text-text-tertiary font-body">Выручка за неделю</p>
+          <p className="font-display text-3xl font-bold text-accent">{weeklyRevenue.toLocaleString()} ₽</p>
+        </Card>
+        <Card className="p-5">
+          <p className="mb-1 text-xs text-text-tertiary font-body">Средний чек (30 дн)</p>
+          <p className="font-display text-3xl font-bold text-text-primary">{avgCheck.toLocaleString()} ₽</p>
+        </Card>
+        <Card className="p-5">
+          <p className="mb-1 text-xs text-text-tertiary font-body">Новых отзывов (нед)</p>
+          <p className="font-display text-3xl font-bold text-text-primary">{newReviews}</p>
         </Card>
       </div>
 
