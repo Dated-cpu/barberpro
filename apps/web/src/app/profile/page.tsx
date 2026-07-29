@@ -9,7 +9,7 @@ import { SectionTitle } from '@/components/shared/section-title';
 import { authStorage } from '@/lib/auth-storage';
 import { cn } from '@/lib/utils';
 import { ProfileHeader } from '@/components/profile/profile-header';
-import { UpcomingAppointmentCard, UpcomingAppointmentCardSkeleton, UpcomingAppointmentEmpty } from '@/components/profile/upcoming-appointment-card';
+import { UpcomingAppointmentCard, UpcomingAppointmentCardSkeleton, UpcomingAppointmentEmpty, type UpcomingAppointment } from '@/components/profile/upcoming-appointment-card';
 import { AppointmentHistory } from '@/components/profile/appointment-history';
 import type { AuthUser } from '@/types/auth';
 
@@ -82,7 +82,7 @@ function ProfileTab({ user }: { user: AuthUser }) {
   const [queryKey, setQueryKey] = useState(0);
 
   const { data: userFull } = trpc.auth.me.useQuery();
-  const createdAt = (userFull as any)?.createdAt;
+  const createdAt = (userFull as Record<string, unknown>)?.createdAt as string | undefined;
 
   const [form, setForm] = useState({
     firstName: user.firstName,
@@ -118,7 +118,7 @@ function ProfileTab({ user }: { user: AuthUser }) {
       ) : upcoming ? (
         <UpcomingAppointmentCard
           key={queryKey}
-          appointment={upcoming as any}
+          appointment={upcoming as unknown as UpcomingAppointment}
           onCancelled={() => setQueryKey((k) => k + 1)}
         />
       ) : (

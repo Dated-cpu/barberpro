@@ -34,7 +34,7 @@ interface AppointmentHistoryProps {
   onRebook?: (serviceId: string) => void;
 }
 
-export function AppointmentHistory({ onRebook }: AppointmentHistoryProps) {
+export function AppointmentHistory({ onRebook: _onRebook }: AppointmentHistoryProps) {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allItems, setAllItems] = useState<HistoryItem[]>([]);
 
@@ -51,7 +51,7 @@ export function AppointmentHistory({ onRebook }: AppointmentHistoryProps) {
         return [...prev, ...newItems];
       });
     }
-  }, [data]);
+  }, [data, cursor]);
 
   if (isPending && allItems.length === 0) {
     return <HistorySkeleton />;

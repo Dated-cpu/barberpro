@@ -23,7 +23,7 @@ const statusColors: Record<string, string> = {
   NO_SHOW: 'text-error border-error/30 bg-error-bg',
 };
 
-interface UpcomingAppointment {
+export interface UpcomingAppointment {
   id: string;
   startTime: string;
   endTime: string;
