@@ -2,7 +2,7 @@ import { SectionTitle } from '@/components/shared/section-title';
 
 const categories = ['Все работы', 'Стрижки', 'Борода', 'Бритьё', 'Укладка'];
 
-export const metadata = { title: 'Портфолио', description: 'Работы наших мастеров' };
+export const metadata = { title: 'Портфолио', description: 'Работы мастера' };
 
 export default function GalleryPage() {
   return (
@@ -10,7 +10,7 @@ export default function GalleryPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionTitle
           title="Портфолио"
-          subtitle="Работы наших мастеров"
+          subtitle="Мои работы"
         />
 
         <div className="mb-8 flex flex-wrap gap-2" role="tablist" aria-label="Категории работ">

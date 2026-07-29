@@ -32,7 +32,7 @@ export default function Home() {
             </Reveal>
             <Reveal animation="fade-up" delay={700}>
               <p className="mb-8 sm:mb-10 max-w-lg text-sm sm:text-base text-stone font-body leading-relaxed">
-                Премиальные стрижки, бритьё и уход. Только лучшие мастера и профессиональная косметика.
+                Премиальные стрижки, бритьё и уход. Индивидуальный подход и профессиональная косметика.
               </p>
             </Reveal>
             <Reveal animation="fade-up" delay={800}>
@@ -61,7 +61,7 @@ export default function Home() {
           </Reveal>
           <div className="mt-10 sm:mt-12 md:mt-16 grid gap-4 sm:gap-6 sm:grid-cols-3">
             {[
-              { title: 'Мастерство', desc: 'Опыт от 5 лет, регулярное обучение у топ-барберов Европы, победы в чемпионатах', icon: '01' },
+              { title: 'Мастерство', desc: 'Опыт от 5 лет, регулярное обучение у топ-мастеров Европы, победы в чемпионатах', icon: '01' },
               { title: 'Атмосфера', desc: 'Интерьер премиального клуба: кожаные кресла, виски, безупречный сервис', icon: '02' },
               { title: 'Точность', desc: 'Каждая стрижка — индивидуальный проект. Никаких шаблонов, только ваш стиль', icon: '03' },
             ].map((item, i) => (
@@ -173,7 +173,7 @@ export default function Home() {
           </Reveal>
           <Reveal animation="fade-up" delay={600}>
             <p className="mb-8 text-sm text-stone font-body leading-relaxed sm:text-base break-words">
-              Выберите удобное время и мастера. Первое посещение — со скидкой 20%.
+              Выберите удобное время. Первое посещение — со скидкой 20%.
             </p>
           </Reveal>
           <Reveal animation="scale-in" delay={700}>

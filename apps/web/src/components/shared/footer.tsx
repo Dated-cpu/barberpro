@@ -10,7 +10,7 @@ export function Footer() {
               BARBER<span className="text-text-primary">PRO</span>
             </h3>
             <p className="text-sm text-text-secondary font-body leading-relaxed max-w-xs">
-              Премиальный барбершоп. Только профессиональные инструменты и лучшие мастера.
+              Премиальный барбершоп. Только профессиональный инструмент и индивидуальный подход.
             </p>
           </div>
 
