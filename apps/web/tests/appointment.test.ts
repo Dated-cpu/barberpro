@@ -86,14 +86,14 @@ describe('createAppointmentSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should reject missing barberId', () => {
+  it('should accept missing barberId (auto-resolve)', () => {
     const result = createAppointmentSchema.safeParse({
       serviceId: uuid,
       startTime: '2026-08-15T10:00:00+03:00',
       clientName: 'Иван',
       clientPhone: validPhone,
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('should reject invalid barberId (not uuid)', () => {
@@ -105,6 +105,17 @@ describe('createAppointmentSchema', () => {
       clientPhone: validPhone,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('should accept valid input without barberId', () => {
+    const result = createAppointmentSchema.safeParse({
+      serviceId: uuid,
+      startTime: '2026-08-15T10:00:00+03:00',
+      clientName: 'Мария',
+      clientPhone: validPhone,
+      clientEmail: 'maria@example.com',
+    });
+    expect(result.success).toBe(true);
   });
 });
 

@@ -12,8 +12,9 @@ export const availabilityRouter = router({
 
   getBarberSchedule: barberProcedure
     .input(dateSlotsQuerySchema)
-    .query(async ({ input }) => {
-      const appointments = await availabilityService.getBarberSchedule(input.barberId, input.startDate);
+    .query(async ({ ctx, input }) => {
+      const barberId = input.barberId ?? ctx.user!.id;
+      const appointments = await availabilityService.getBarberSchedule(barberId, input.startDate);
       return appointments;
     }),
 });

@@ -3,7 +3,7 @@ import { z } from 'zod';
 const phoneRegex = /^\+7\d{10}$/;
 
 export const createAppointmentSchema = z.object({
-  barberId: z.string().uuid(),
+  barberId: z.string().uuid().optional(),
   serviceId: z.string().uuid(),
   branchId: z.string().uuid().nullable().optional(),
   startTime: z.string().datetime({ offset: true }),
@@ -28,13 +28,13 @@ export const markNoShowSchema = z.object({
 });
 
 export const slotQuerySchema = z.object({
-  barberId: z.string().uuid(),
+  barberId: z.string().uuid().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Формат даты: YYYY-MM-DD'),
   serviceId: z.string().uuid(),
 });
 
 export const dateSlotsQuerySchema = z.object({
-  barberId: z.string().uuid(),
+  barberId: z.string().uuid().optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   serviceId: z.string().uuid(),

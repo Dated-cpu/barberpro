@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { trpc } from '@/trpc/client';
 import { SectionTitle } from '@/components/shared/section-title';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { SlotSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { ConsentType } from '@/lib/legal';
 
-type Step = 'service' | 'barber' | 'date' | 'info' | 'confirm';
+type Step = 'service' | 'date' | 'info' | 'confirm';
 
 interface AppointmentResult {
   id: string;
@@ -22,7 +22,6 @@ interface AppointmentResult {
 export default function BookingPage() {
   const [step, setStep] = useState<Step>('service');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [appointmentResult, setAppointmentResult] = useState<AppointmentResult | null>(null);
@@ -41,15 +40,16 @@ export default function BookingPage() {
   const recordConsent = trpc.consent.record.useMutation();
   const createAppointment = trpc.appointment.create.useMutation();
 
+  const barber = useMemo(() => barbers?.[0] ?? null, [barbers]);
+
   const selectedService = services?.find((s) => s.id === selectedServiceId);
-  const selectedBarber = barbers?.find((b) => b.id === selectedBarberId);
 
   const { data: availableSlots, isFetching: slotsLoading } = trpc.availability.getAvailableSlots.useQuery(
-    { barberId: selectedBarberId || '', date: selectedDate || '', serviceId: selectedServiceId || '' },
-    { enabled: !!selectedDate && !!selectedBarberId && !!selectedServiceId },
+    { barberId: barber?.id ?? '', date: selectedDate || '', serviceId: selectedServiceId || '' },
+    { enabled: !!barber && !!selectedDate && !!selectedServiceId },
   );
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const dates = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
@@ -75,7 +75,7 @@ export default function BookingPage() {
       );
 
       const result = await createAppointment.mutateAsync({
-        barberId: selectedBarberId!,
+        barberId: barber!.id,
         serviceId: selectedServiceId!,
         startTime,
         clientName: form.name,
@@ -85,9 +85,9 @@ export default function BookingPage() {
 
       setAppointmentResult({
         id: result.id,
-        startTime: startTime,
+        startTime,
         serviceName: selectedService?.name || '',
-        barberName: selectedBarber ? `${selectedBarber.firstName} ${selectedBarber.lastName}` : '',
+        barberName: barber ? `${barber.firstName} ${barber.lastName}` : '',
       });
       setStep('confirm');
     } catch (err: unknown) {
@@ -101,7 +101,6 @@ export default function BookingPage() {
   const reset = () => {
     setStep('service');
     setSelectedServiceId(null);
-    setSelectedBarberId(null);
     setSelectedDate(null);
     setSelectedSlot(null);
     setAppointmentResult(null);
@@ -109,9 +108,19 @@ export default function BookingPage() {
     setConsents({ privacy: false, terms: false, personalData: false, bookingRules: false });
   };
 
-  const stepOrder: Step[] = ['service', 'barber', 'date', 'info'];
+  const stepOrder: Step[] = ['service', 'date', 'info'];
   const currentStepIndex = stepOrder.indexOf(step);
   const isStepComplete = (s: Step) => stepOrder.indexOf(s) < currentStepIndex || step === 'confirm';
+
+  if (barbers && !barbersLoading && barbers.length === 0) {
+    return (
+      <div className="py-12 sm:py-16">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 text-center">
+          <p className="text-text-tertiary font-body">Запись временно недоступна</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-12 sm:py-16">
@@ -122,7 +131,7 @@ export default function BookingPage() {
         />
 
         <div className="mb-6 sm:mb-8 flex items-center justify-center gap-1 sm:gap-2 overflow-x-auto pb-1">
-          {(['service', 'barber', 'date', 'info'] as Step[]).map((s, i) => (
+          {(['service', 'date', 'info'] as Step[]).map((s, i) => (
             <div key={s} className="flex items-center gap-1 sm:gap-2 shrink-0">
               <div className={cn(
                 'flex h-9 sm:h-8 w-9 sm:w-8 items-center justify-center rounded-full text-xs sm:text-xs font-semibold transition-colors font-body',
@@ -138,7 +147,7 @@ export default function BookingPage() {
                   i + 1
                 )}
               </div>
-              {i < 3 && (
+              {i < 2 && (
                 <div className={cn(
                   'h-px w-6 sm:w-12',
                   isStepComplete(s) || step === s ? 'bg-accent' : 'bg-border',
@@ -160,7 +169,7 @@ export default function BookingPage() {
               services.map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => { setSelectedServiceId(s.id); setStep('barber'); }}
+                  onClick={() => { setSelectedServiceId(s.id); setStep('date'); }}
                   className={cn(
                     'flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 min-h-[60px]',
                     selectedServiceId === s.id ? 'border-accent bg-accent-muted' : 'border-border bg-bg-elevated hover:border-accent/50',
@@ -175,34 +184,6 @@ export default function BookingPage() {
               ))
             ) : (
               <p className="text-sm text-text-tertiary font-body text-center py-8">Услуги временно недоступны</p>
-            )}
-          </div>
-        )}
-
-        {step === 'barber' && (
-          <div className="flex flex-col gap-3">
-            <h3 className="mb-1 text-sm font-semibold text-text-primary font-body">Выберите барбера</h3>
-            {barbersLoading ? (
-              <div className="flex flex-col gap-3 animate-pulse">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-[52px] rounded-xl bg-bg-elevated" />
-                ))}
-              </div>
-            ) : barbers && barbers.length > 0 ? (
-              barbers.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => { setSelectedBarberId(b.id); setStep('date'); }}
-                  className={cn(
-                    'rounded-xl border p-3 text-left transition-all duration-200',
-                    selectedBarberId === b.id ? 'border-accent bg-accent-muted' : 'border-border bg-bg-elevated hover:border-accent/50',
-                  )}
-                >
-                  <span className="font-display font-semibold text-text-primary">{b.firstName} {b.lastName}</span>
-                </button>
-              ))
-            ) : (
-              <p className="text-sm text-text-tertiary font-body text-center py-8">Барберы временно недоступны</p>
             )}
           </div>
         )}
@@ -265,7 +246,7 @@ export default function BookingPage() {
             )}
 
             <div className="mt-6 flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setStep('barber')}>
+              <Button variant="ghost" size="sm" onClick={() => setStep('service')}>
                 Назад
               </Button>
             </div>
@@ -331,7 +312,7 @@ export default function BookingPage() {
               <Button variant="ghost" size="sm" onClick={() => setStep('date')}>
                 Назад
               </Button>
-              <Button onClick={handleConfirm} className="flex-1 sm:flex-none" disabled={!form.name || !form.phone || submitting} loading={submitting}>
+              <Button onClick={handleConfirm} className="flex-1 sm:flex-none" disabled={!form.name || !form.phone || submitting || !barber} loading={submitting}>
                 Подтвердить запись
               </Button>
             </div>

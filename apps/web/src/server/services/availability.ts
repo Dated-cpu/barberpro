@@ -6,6 +6,7 @@ import { serviceRepository } from '../repositories/service';
 import { parseTimeInTimezone, formatDateInTimezone, getDateRangeInTimezone, timeToMinutes, addMinutesToTime } from '../lib/date';
 import type { AvailableSlot } from '@/types/booking';
 import { NotFoundError } from '../lib/errors';
+import type { TxClient } from '../db/helpers';
 
 function doSlotsOverlap(
   slotStartMinutes: number,
@@ -16,14 +17,27 @@ function doSlotsOverlap(
   return slotStartMinutes < appEndMinutes && slotEndMinutes > appStartMinutes;
 }
 
+async function resolveBarberId(tx: TxClient, barberId?: string | null): Promise<string> {
+  if (barberId) return barberId;
+  const barber = await tx.user.findFirst({
+    where: { role: 'BARBER', isActive: true, deletedAt: null },
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  if (!barber) throw new NotFoundError('Barber');
+  return barber.id;
+}
+
 export const availabilityService = {
-  async getAvailableSlots(barberId: string, dateStr: string, serviceId: string): Promise<AvailableSlot[]> {
+  async getAvailableSlots(barberId: string | undefined, dateStr: string, serviceId: string): Promise<AvailableSlot[]> {
     return transaction(async (tx) => {
+      const resolvedBarberId = await resolveBarberId(tx, barberId);
+
       const service = await serviceRepository.findById(tx, serviceId);
       if (!service) throw new NotFoundError('Service');
 
       const barber = await tx.user.findUnique({
-        where: { id: barberId, deletedAt: null, role: 'BARBER', isActive: true },
+        where: { id: resolvedBarberId, deletedAt: null, role: 'BARBER', isActive: true },
         include: { branchAssignments: { include: { branch: true }, take: 1 } },
       });
       if (!barber) throw new NotFoundError('Barber');
@@ -35,10 +49,10 @@ export const availabilityService = {
       const jsDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
 
       const dateStart = new Date(dateStr + 'T00:00:00');
-      let workingDay = await workingDayRepository.findByBarberAndDate(tx, barberId, dateStart);
+      let workingDay = await workingDayRepository.findByBarberAndDate(tx, resolvedBarberId, dateStart);
 
       if (!workingDay) {
-        workingDay = await workingDayRepository.findTemplateByDayOfWeek(tx, barberId, jsDayOfWeek);
+        workingDay = await workingDayRepository.findTemplateByDayOfWeek(tx, resolvedBarberId, jsDayOfWeek);
       }
 
       if (!workingDay || workingDay.isDayOff) {
@@ -47,8 +61,8 @@ export const availabilityService = {
 
       const { start: dayStart, end: dayEnd } = getDateRangeInTimezone(dateStr, timezone);
 
-      const appointments = await appointmentRepository.findByBarberAndDate(tx, barberId, dayStart, dayEnd);
-      const blockedSlots = await blockedSlotRepository.findByBarberAndTimeRange(tx, barberId, dayStart, dayEnd);
+      const appointments = await appointmentRepository.findByBarberAndDate(tx, resolvedBarberId, dayStart, dayEnd);
+      const blockedSlots = await blockedSlotRepository.findByBarberAndTimeRange(tx, resolvedBarberId, dayStart, dayEnd);
 
       const slots: AvailableSlot[] = [];
       const duration = service.duration;

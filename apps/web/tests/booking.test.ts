@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  slotQuerySchema,
+  dateSlotsQuerySchema,
+} from '../src/validators/booking';
+import {
   parseTimeInTimezone,
   formatDateInTimezone,
   getDateRangeInTimezone,
@@ -162,5 +166,53 @@ describe('Slot generation logic', () => {
 
     const isOverlap = slotStart < appEnd && slotEnd > appStart;
     expect(isOverlap).toBe(false);
+  });
+});
+
+describe('slotQuerySchema', () => {
+  it('should accept valid input with barberId', () => {
+    const result = slotQuerySchema.safeParse({
+      barberId: '00000000-0000-0000-0000-000000000001',
+      date: '2026-08-15',
+      serviceId: '00000000-0000-0000-0000-000000000002',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept valid input without barberId', () => {
+    const result = slotQuerySchema.safeParse({
+      date: '2026-08-15',
+      serviceId: '00000000-0000-0000-0000-000000000002',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject invalid date format', () => {
+    const result = slotQuerySchema.safeParse({
+      date: '15-08-2026',
+      serviceId: '00000000-0000-0000-0000-000000000002',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('dateSlotsQuerySchema', () => {
+  it('should accept valid input with barberId', () => {
+    const result = dateSlotsQuerySchema.safeParse({
+      barberId: '00000000-0000-0000-0000-000000000001',
+      startDate: '2026-08-15',
+      endDate: '2026-08-21',
+      serviceId: '00000000-0000-0000-0000-000000000002',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept valid input without barberId', () => {
+    const result = dateSlotsQuerySchema.safeParse({
+      startDate: '2026-08-15',
+      endDate: '2026-08-21',
+      serviceId: '00000000-0000-0000-0000-000000000002',
+    });
+    expect(result.success).toBe(true);
   });
 });

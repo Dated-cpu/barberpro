@@ -12,6 +12,17 @@ import type { TxClient } from '../db/helpers';
 
 import type { CreateAppointmentInput } from '@/validators/booking';
 
+async function resolveBarberId(tx: TxClient, barberId?: string | null): Promise<string> {
+  if (barberId) return barberId;
+  const barber = await tx.user.findFirst({
+    where: { role: 'BARBER', isActive: true, deletedAt: null },
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  if (!barber) throw new NotFoundError('Barber');
+  return barber.id;
+}
+
 async function resolveGuestClientId(
   tx: TxClient,
   clientId: string | undefined | null,
@@ -53,11 +64,13 @@ async function resolveGuestClientId(
 export const appointmentService = {
   async create(input: CreateAppointmentInput & { clientId?: string }) {
     return prisma.$transaction(async (tx) => {
+      const barberId = await resolveBarberId(tx, input.barberId);
+
       const service = await serviceRepository.findById(tx, input.serviceId);
       if (!service) throw new NotFoundError('Service');
 
       const barber = await tx.user.findUnique({
-        where: { id: input.barberId, deletedAt: null, role: 'BARBER', isActive: true },
+        where: { id: barberId, deletedAt: null, role: 'BARBER', isActive: true },
         include: { branchAssignments: { include: { branch: true }, take: 1 } },
       });
       if (!barber) throw new NotFoundError('Barber');
@@ -67,14 +80,14 @@ export const appointmentService = {
       const startTime = new Date(input.startTime);
       const endTime = new Date(startTime.getTime() + service.duration * 60 * 1000);
 
-      const overlapCount = await appointmentRepository.findOverlappingCount(tx, input.barberId, startTime, endTime);
+      const overlapCount = await appointmentRepository.findOverlappingCount(tx, barberId, startTime, endTime);
       if (overlapCount > 0) {
         throw new ConflictError('Это время уже занято');
       }
 
       const blockedSlots = await tx.blockedSlot.findMany({
         where: {
-          barberId: input.barberId,
+          barberId: barberId,
           deletedAt: null,
           AND: [
             { startTime: { lt: endTime } },
@@ -90,7 +103,7 @@ export const appointmentService = {
 
       const appointment = await appointmentRepository.create(tx, {
         clientId,
-        barberId: input.barberId,
+        barberId: barberId,
         serviceId: input.serviceId,
         branchId: branch?.id ?? null,
         startTime,
@@ -108,14 +121,14 @@ export const appointmentService = {
         payload: {
           appointmentId: appointment.id,
           clientId,
-          barberId: input.barberId,
+          barberId: barberId,
           serviceId: input.serviceId,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
         },
       });
 
-      logger.info('Appointment created', { appointmentId: appointment.id, barberId: input.barberId, clientId });
+      logger.info('Appointment created', { appointmentId: appointment.id, barberId: barberId, clientId });
 
       return { ...appointment, clientId };
     }, { isolationLevel: 'Serializable' });
