@@ -5,155 +5,143 @@ import { trpc } from '@/trpc/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
 import { useToast } from '@/components/ui/toast';
 
-const STRUCTURED_KEYS: { key: string; label: string; type: string; description: string }[] = [
-  { key: 'site_name', label: 'Название сайта', type: 'string', description: 'BARBERPRO' },
-  { key: 'site_phone', label: 'Телефон', type: 'string', description: '+7 (999) 123-45-67' },
-  { key: 'site_email', label: 'Email', type: 'string', description: 'info@barberpro.ru' },
-  { key: 'site_address', label: 'Адрес', type: 'string', description: 'г. Москва, ул. Примерная, 1' },
-  { key: 'social_instagram', label: 'Instagram', type: 'string', description: '@barberpro' },
-  { key: 'social_vk', label: 'VK', type: 'string', description: 'vk.com/barberpro' },
-  { key: 'social_telegram', label: 'Telegram', type: 'string', description: '@barberpro_bot' },
-  { key: 'seo_title', label: 'SEO Title', type: 'string', description: 'Барбершоп BarberPRO' },
-  { key: 'seo_description', label: 'SEO Description', type: 'string', description: 'Лучший барбершоп в городе' },
-  { key: 'working_hours', label: 'Часы работы (JSON)', type: 'json', description: '{"mon":"09:00-20:00","tue":"09:00-20:00"}' },
-];
+const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 export default function AdminSettings() {
   const { addToast } = useToast();
   const utils = trpc.useUtils();
-  const { data: settings, isFetching } = trpc.settings.adminGetSystemSettings.useQuery();
+  const { data: user } = trpc.auth.me.useQuery();
+  const { data: workingDays } = trpc.settings.getWorkingDays.useQuery();
 
-  const [newKey, setNewKey] = useState('');
-  const [newValue, setNewValue] = useState('');
-  const [newType, setNewType] = useState('string');
-  const [newDesc, setNewDesc] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState<Record<string, string> | null>(null);
+  const [editingDay, setEditingDay] = useState<{ dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean; id?: string } | null>(null);
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDesc, setSeoDesc] = useState('');
+  const [socialInsta, setSocialInsta] = useState('');
+  const [socialTelegram, setSocialTelegram] = useState('');
+  const [socialWhatsapp, setSocialWhatsapp] = useState('');
 
-  const structuredValues: Record<string, string> = {};
-  if (settings) {
-    for (const s of (settings as Array<{ id: string; key: string; value: unknown; type: string; description: string | null }>)) {
-      structuredValues[s.key] = String(s.value);
-    }
-  }
+  const updateProfileMut = trpc.settings.updateProfile.useMutation({
+    onSuccess: () => { utils.auth.me.invalidate(); addToast('Профиль обновлён', 'success'); },
+    onError: (e) => addToast(e.message, 'error'),
+  });
 
-  async function handleAdd(key: string, value: string, type: string, desc?: string) {
-    setSaving(true);
-    try {
-      const client = (utils as any).client;
-      await client.settings.adminUpsertSetting.mutate({ key, value, type, description: desc ?? null });
-      utils.settings.adminGetSystemSettings.invalidate();
-      addToast(`Настройка "${key}" сохранена`, 'success');
-    } catch (e: unknown) {
-      addToast(e instanceof Error ? e.message : 'Ошибка', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
+  const upsertDayMut = trpc.settings.upsertWorkingDay.useMutation({
+    onSuccess: () => { utils.settings.getWorkingDays.invalidate(); addToast('Расписание сохранено', 'success'); setEditingDay(null); },
+  });
 
-  async function handleCustomAdd() {
-    if (!newKey || !newValue) return;
-    await handleAdd(newKey, newValue, newType, newDesc);
-    setNewKey(''); setNewValue(''); setNewDesc('');
+  function handleProfileSave() {
+    if (!profileForm) return;
+    updateProfileMut.mutate({ firstName: profileForm.firstName, lastName: profileForm.lastName, phone: profileForm.phone });
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Structured settings */}
-      <Card className="p-5">
-        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Основные настройки</h2>
-        {isFetching ? (
-          <p className="text-sm text-text-tertiary font-body">Загрузка...</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {STRUCTURED_KEYS.map((sk) => (
-              <StructuredSettingRow
-                key={sk.key}
-                setting={sk}
-                currentValue={structuredValues[sk.key] ?? ''}
-                onSave={(value) => handleAdd(sk.key, value, sk.type, sk.description)}
-                saving={saving}
-              />
-            ))}
+    <div className="flex flex-col gap-8">
+      {/* Profile */}
+      <div>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Профиль</h2>
+        <Card className="p-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input id="pf-firstname" label="Имя" value={profileForm?.firstName ?? user?.firstName ?? ''}
+              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), firstName: e.target.value })} />
+            <Input id="pf-lastname" label="Фамилия" value={profileForm?.lastName ?? user?.lastName ?? ''}
+              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), lastName: e.target.value })} />
+            <Input id="pf-phone" label="Телефон" value={profileForm?.phone ?? user?.phone ?? ''}
+              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), phone: e.target.value })} />
+            <Input id="pf-email" label="Email" value={user?.email ?? ''} disabled className="opacity-50" />
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs text-text-tertiary font-body">Описание</label>
+              <textarea className="w-full rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary font-body placeholder:text-text-tertiary/50"
+                placeholder="Краткое описание вас и ваших услуг" rows={3}
+                value={profileForm?.description ?? ''}
+                onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), description: e.target.value })} />
+            </div>
           </div>
-        )}
-      </Card>
-
-      {/* Raw settings */}
-      <Card className="p-5">
-        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Добавить настройку</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Input id="skey" label="Ключ" value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="custom_key" />
-          <Input id="sval" label="Значение" value={newValue} onChange={(e) => setNewValue(e.target.value)} placeholder="value" />
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-tertiary font-body">Тип</label>
-            <select value={newType} onChange={(e) => setNewType(e.target.value)}
-              className="rounded-lg border border-border bg-bg-secondary px-3 py-2.5 text-sm text-text-primary font-body">
-              <option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option><option value="json">json</option>
-            </select>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" onClick={handleProfileSave} loading={updateProfileMut.isPending}>Сохранить</Button>
           </div>
-          <Input id="sdesc" label="Описание" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Описание" />
-          <Button className="self-end" size="sm" onClick={handleCustomAdd} loading={saving}>Добавить</Button>
-        </div>
-      </Card>
-
-      {/* All settings list */}
-      <Card className="p-5">
-        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Все настройки</h2>
-        {isFetching ? (
-          <p className="text-sm text-text-tertiary font-body">Загрузка...</p>
-        ) : settings && settings.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {(settings as Array<{ id: string; key: string; value: unknown; type: string; description: string | null }>).map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-border bg-bg-elevated px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-text-primary font-body">{s.key}</p>
-                  <p className="text-xs text-text-tertiary font-body">{s.description ?? '—'}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <code className="rounded bg-bg-tertiary px-2 py-1 text-xs text-text-secondary">{String(s.value).slice(0, 50)}</code>
-                  <span className="rounded bg-accent-muted px-2 py-0.5 text-xs text-accent">{s.type}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-tertiary font-body">Настройки не найдены</p>
-        )}
-      </Card>
-    </div>
-  );
-}
-
-function StructuredSettingRow({ setting, currentValue, onSave, saving }: {
-  setting: { key: string; label: string; type: string; description: string };
-  currentValue: string;
-  onSave: (value: string) => Promise<void>;
-  saving: boolean;
-}) {
-  const [editValue, setEditValue] = useState(currentValue);
-  const [editing, setEditing] = useState(false);
-
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-bg-elevated px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-text-primary font-body">{setting.label}</p>
-          <code className="rounded bg-bg-tertiary px-1.5 py-0.5 text-[10px] text-text-tertiary">{setting.key}</code>
-        </div>
-        {editing ? (
-          <div className="mt-1 flex gap-2">
-            <Input id={`edit-${setting.key}`} value={editValue} onChange={(e) => setEditValue(e.target.value)} className="max-w-sm" />
-            <Button size="xs" onClick={async () => { await onSave(editValue); setEditing(false); }} loading={saving}>Сохранить</Button>
-            <Button size="xs" variant="ghost" onClick={() => { setEditValue(currentValue); setEditing(false); }}>Отмена</Button>
-          </div>
-        ) : (
-          <p className="text-xs text-text-tertiary font-body mt-0.5">{currentValue || '—'}</p>
-        )}
+        </Card>
       </div>
-      <div className="flex items-center gap-2 shrink-0 ml-3">
-        {!editing && <Button size="xs" variant="ghost" onClick={() => { setEditValue(currentValue); setEditing(true); }}>Изменить</Button>}
+
+      {/* Social */}
+      <div>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Социальные сети</h2>
+        <Card className="p-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input id="soc-insta" label="Instagram" placeholder="@username" value={socialInsta} onChange={(e) => setSocialInsta(e.target.value)} />
+            <Input id="soc-tg" label="Telegram" placeholder="@username" value={socialTelegram} onChange={(e) => setSocialTelegram(e.target.value)} />
+            <Input id="soc-wa" label="WhatsApp" placeholder="+7 (999) 123-45-67" value={socialWhatsapp} onChange={(e) => setSocialWhatsapp(e.target.value)} />
+          </div>
+        </Card>
+      </div>
+
+      {/* Working hours */}
+      <div>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Рабочее расписание</h2>
+        <div className="flex flex-col gap-2">
+          {dayNames.map((name, i) => {
+            const dayOfWeek = i + 1;
+            const wd = workingDays?.find((d) => d.dayOfWeek === dayOfWeek);
+            const isEditing = editingDay?.dayOfWeek === dayOfWeek;
+            return (
+              <Card key={dayOfWeek} className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-4">
+                  <p className="min-w-[32px] font-body text-sm font-medium text-text-primary">{name}</p>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      {editingDay.isDayOff ? (
+                        <p className="text-sm text-text-tertiary font-body">Выходной</p>
+                      ) : (
+                        <>
+                          <Input id={`start-${dayOfWeek}`} type="time" value={editingDay.startTime} onChange={(e) => setEditingDay({ ...editingDay, startTime: e.target.value })} className="w-28" />
+                          <span className="text-text-tertiary">—</span>
+                          <Input id={`end-${dayOfWeek}`} type="time" value={editingDay.endTime} onChange={(e) => setEditingDay({ ...editingDay, endTime: e.target.value })} className="w-28" />
+                        </>
+                      )}
+                      <label className="flex items-center gap-2 text-xs text-text-secondary font-body">
+                        <input type="checkbox" checked={editingDay.isDayOff} onChange={(e) => setEditingDay({ ...editingDay, isDayOff: e.target.checked })} />
+                        Выходной
+                      </label>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-text-secondary font-body">
+                      {wd ? (wd.isDayOff ? 'Выходной' : `${wd.startTime} — ${wd.endTime}`) : 'Не настроено'}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button size="sm" onClick={() => upsertDayMut.mutate(editingDay)}>Сохранить</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingDay(null)}>Отмена</Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="ghost" onClick={() => setEditingDay({ dayOfWeek, startTime: wd?.startTime ?? '09:00', endTime: wd?.endTime ?? '19:00', isDayOff: wd?.isDayOff ?? false, id: wd?.id })}>Изменить</Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SEO */}
+      <div>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">SEO</h2>
+        <Card className="p-4">
+          <div className="grid gap-4">
+            <Input id="seo-title" label="Заголовок (title)" placeholder="Барбершоп в Москве | BarberPRO" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+            <div>
+              <label className="mb-1 block text-xs text-text-tertiary font-body">Описание (meta description)</label>
+              <textarea className="w-full rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary font-body placeholder:text-text-tertiary/50"
+                placeholder="Лучший барбершоп в центре Москвы. Стрижки, бритьё, укладка. Запись онлайн."
+                rows={2} value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} />
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

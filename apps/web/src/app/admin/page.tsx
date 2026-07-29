@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminOverview() {
-  const { data, isFetching } = trpc.dashboard.adminOverview.useQuery();
+  const { data: overview, isFetching } = trpc.dashboard.adminOverview.useQuery();
 
   const { data: analytics } = trpc.dashboard.analytics.useQuery(
     (() => {
@@ -27,7 +27,7 @@ export default function AdminOverview() {
     return (
       <div className="flex flex-col gap-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="p-5"><Skeleton className="h-16" /></Card>
           ))}
         </div>
@@ -36,22 +36,18 @@ export default function AdminOverview() {
   }
 
   const primaryStats = [
-    { label: 'Барберы', value: data?.totalBarbers ?? 0, sub: 'активных' },
-    { label: 'Клиенты', value: data?.totalClients ?? 0, sub: 'всего' },
-    { label: 'Записи всего', value: data?.totalAppointments ?? 0, sub: 'все статусы' },
-    { label: 'Выручка (всё время)', value: `${(data?.totalRevenue ?? 0).toLocaleString()} ₽`, sub: '' },
-    { label: 'Выручка сегодня', value: `${(data?.todayRevenue ?? 0).toLocaleString()} ₽`, sub: '' },
-    { label: 'Выручка неделя', value: `${(data?.weekRevenue ?? 0).toLocaleString()} ₽`, sub: '' },
-    { label: 'Выручка месяц', value: `${(data?.monthRevenue ?? 0).toLocaleString()} ₽`, sub: '' },
-    { label: 'Средний чек', value: `${(data?.avgCheck ?? 0).toLocaleString()} ₽`, sub: '30 дней' },
+    { label: 'Сегодня записей', value: overview?.today?.totalAppointments ?? 0, sub: '' },
+    { label: 'Выручка сегодня', value: `${(overview?.today?.totalRevenue ?? 0).toLocaleString()} ₽`, sub: '' },
+    { label: 'Выручка неделя', value: `${(overview?.weeklyRevenue ?? 0).toLocaleString()} ₽`, sub: '' },
+    { label: 'Средний чек', value: `${(overview?.avgCheck ?? 0).toLocaleString()} ₽`, sub: '30 дней' },
   ];
 
   const secondaryStats = [
-    { label: 'Новые пользователи (нед)', value: data?.newUsers ?? 0 },
-    { label: 'Новые клиенты (нед)', value: data?.newClients ?? 0 },
-    { label: 'Записей за неделю', value: data?.weekAppointments ?? 0 },
-    { label: 'Записей за месяц', value: data?.monthAppointments ?? 0 },
-    { label: 'Популярная услуга', value: data?.popularService ?? '—' },
+    { label: 'Загрузка сегодня', value: `${Math.round(overview?.today?.loadPercent ?? 0)}%` },
+    { label: 'Выполнено за неделю', value: overview?.weeklyCompleted ?? 0 },
+    { label: 'Всего клиентов', value: overview?.totalUniqueClients ?? 0 },
+    { label: 'Завтра записей', value: overview?.tomorrowAppointments ?? 0 },
+    { label: 'Новых отзывов (нед)', value: overview?.newReviews ?? 0 },
   ];
 
   const maxRevenue = Math.max(...topDays.map(([, d]) => Number(d.revenue)), 1);
@@ -77,7 +73,6 @@ export default function AdminOverview() {
         ))}
       </div>
 
-      {/* Daily revenue chart */}
       <Card className="p-5">
         <p className="mb-4 text-sm font-medium text-text-primary font-body">Доход по дням (14 дней)</p>
         {topDays.length > 0 ? (

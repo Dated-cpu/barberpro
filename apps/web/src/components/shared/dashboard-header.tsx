@@ -17,11 +17,7 @@ const breadcrumbMap: Record<string, string> = {
   'portfolio': 'Портфолио',
   'reviews': 'Отзывы',
   'settings': 'Настройки',
-  'barbers': 'Барберы',
   'clients': 'Клиенты',
-  'branches': 'Филиалы',
-  'analytics': 'Аналитика',
-  'audit': 'Аудит',
 };
 
 function getBreadcrumbs(pathname: string) {
