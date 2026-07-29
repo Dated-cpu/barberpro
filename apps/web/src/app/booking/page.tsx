@@ -7,6 +7,7 @@ import { SectionTitle } from '@/components/shared/section-title';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConsentCheckbox } from '@/components/ui/consent-checkbox';
+import { MobileBackButton } from '@/components/shared/mobile-back-button';
 import { SlotSkeleton, ServiceSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { ConsentType } from '@/lib/legal';
@@ -254,6 +255,7 @@ export default function BookingPage() {
 
   return (
     <div className="py-12 sm:py-16">
+      <MobileBackButton />
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         <SectionTitle title="Онлайн-запись" subtitle="Выберите услугу, дату и время" />
 

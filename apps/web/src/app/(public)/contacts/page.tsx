@@ -1,5 +1,7 @@
 import { SectionTitle } from '@/components/shared/section-title';
 import { Button } from '@/components/ui/button';
+import { MobileBackButton } from '@/components/shared/mobile-back-button';
+import { MapPinIcon, PhoneIcon, InstagramIcon, TelegramIcon } from '@/components/ui/icons';
 import Link from 'next/link';
 
 export const metadata = { title: 'Контакты', description: 'Контакты барбершопа BarberPro' };
@@ -7,6 +9,7 @@ export const metadata = { title: 'Контакты', description: 'Контак�
 export default function ContactsPage() {
   return (
     <div className="py-16 sm:py-20 md:py-24">
+      <MobileBackButton />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionTitle
           title="Контакты"
@@ -16,11 +19,18 @@ export default function ContactsPage() {
         <div className="mt-10 sm:mt-12 md:mt-16 grid gap-8 sm:gap-12 lg:grid-cols-2">
           <div className="flex flex-col gap-8">
             <div>
-              <h3 className="mb-2 font-display text-lg font-semibold text-text-primary">Адрес</h3>
-              <p className="text-text-secondary font-body">ул. Тверская, 15, Москва</p>
-              <p className="mt-2 text-sm text-text-tertiary font-body">
-                ст. м. Пушкинская, Тверская, Чеховская — 5 минут пешком
-              </p>
+              <h3 className="mb-3 font-display text-lg font-semibold text-text-primary">Адрес</h3>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-bg-elevated text-accent">
+                  <MapPinIcon width="16" height="16" />
+                </div>
+                <div>
+                  <p className="text-text-secondary font-body">ул. Тверская, 15, Москва</p>
+                  <p className="mt-1 text-sm text-text-tertiary font-body">
+                    ст. м. Пушкинская, Тверская, Чеховская — 5 минут пешком
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -33,8 +43,13 @@ export default function ContactsPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 font-display text-lg font-semibold text-text-primary">Телефон</h3>
-              <a href="tel:+79991234567" className="text-accent transition-colors hover:text-accent-hover font-body">+7 (999) 123-45-67</a>
+              <h3 className="mb-3 font-display text-lg font-semibold text-text-primary">Телефон</h3>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-bg-elevated text-accent">
+                  <PhoneIcon width="16" height="16" />
+                </div>
+                <a href="tel:+79991234567" className="text-accent transition-colors hover:text-accent-hover font-body">+7 (999) 123-45-67</a>
+              </div>
             </div>
 
             <div>
@@ -43,16 +58,16 @@ export default function ContactsPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 font-display text-lg font-semibold text-text-primary">Социальные сети</h3>
+              <h3 className="mb-3 font-display text-lg font-semibold text-text-primary">Социальные сети</h3>
               <div className="flex gap-3">
-                <a href="#" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+                <a href="#" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-lg">
+                  <InstagramIcon />
                 </a>
-                <a href="#" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21.5 4.5l-19 7.5 7 2.5 3 8 9-18z"/></svg>
+                <a href="#" aria-label="Telegram" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-lg">
+                  <TelegramIcon />
                 </a>
-                <a href="#" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.1 2C6.5 2 2 6.5 2 12.1v-.2C2 17.5 6.5 22 12.1 22h-.2c5.5 0 10.1-4.5 10.1-10.1v.2C22 6.5 17.5 2 12.1 2z"/></svg>
+                <a href="#" aria-label="WhatsApp" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-lg">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12.1 2C6.5 2 2 6.5 2 12.1v-.2C2 17.5 6.5 22 12.1 22h-.2c5.5 0 10.1-4.5 10.1-10.1v.2C22 6.5 17.5 2 12.1 2z"/></svg>
                 </a>
               </div>
             </div>

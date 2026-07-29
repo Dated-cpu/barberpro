@@ -64,6 +64,7 @@ const config: Config = {
         'slide-up': 'slideUp 0.7s cubic-bezier(0.65,0,0.35,1) forwards',
         'scale-in': 'scaleIn 0.5s cubic-bezier(0.65,0,0.35,1) forwards',
         'toast-in': 'toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        'star-pop': 'starPop 0.4s ease-out forwards',
       },
       keyframes: {
         goldDraw: {
@@ -85,6 +86,11 @@ const config: Config = {
         toastIn: {
           from: { opacity: '0', transform: 'translateY(12px) scale(0.96)' },
           to: { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        starPop: {
+          '0%': { opacity: '0', transform: 'scale(0)' },
+          '50%': { transform: 'scale(1.2)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
       transitionDuration: {

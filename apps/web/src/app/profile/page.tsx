@@ -6,6 +6,7 @@ import { trpc } from '@/trpc/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/shared/section-title';
+import { MobileBackButton } from '@/components/shared/mobile-back-button';
 import { authStorage } from '@/lib/auth-storage';
 import { cn } from '@/lib/utils';
 import { ProfileHeader } from '@/components/profile/profile-header';
@@ -45,6 +46,7 @@ export default function ProfilePage() {
 
   return (
     <div className="py-16 sm:py-20">
+      <MobileBackButton />
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         <SectionTitle
           title="Личный кабинет"
