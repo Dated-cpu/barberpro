@@ -22,6 +22,10 @@ function getRedirectPath(role: string): string {
   }
 }
 
+function setRoleCookie(role: string) {
+  document.cookie = `bp_role=${role}; path=/; max-age=86400; SameSite=Lax`;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { addToast } = useToast();
@@ -32,6 +36,7 @@ export default function LoginPage() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
+      setRoleCookie(data.user.role);
       addToast('Вход выполнен успешно', 'success');
       setTimeout(() => router.push(getRedirectPath(data.user.role)), 150);
     },
@@ -104,7 +109,7 @@ export default function LoginPage() {
           ) : null}
 
           <Button type="submit" className="mt-2 w-full" loading={loginMutation.isPending}>
-            Войти
+            {loginMutation.isPending ? 'Выполняется вход...' : 'Войти'}
           </Button>
         </form>
 

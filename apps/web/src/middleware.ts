@@ -14,7 +14,65 @@ const CSP_HEADER = [
   "form-action 'self'",
 ].join('; ');
 
-const protectedPaths = ['/profile', '/profile/', '/admin', '/admin/', '/barber', '/barber/'];
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const decoded = JSON.parse(atob(payload));
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function getCookieValue(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(';')) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(name + '=')) {
+      return trimmed.slice(name.length + 1);
+    }
+  }
+  return null;
+}
+
+function getRole(request: NextRequest): string | null {
+  const roleCookie = getCookieValue(request.headers.get('cookie'), 'bp_role');
+  if (roleCookie) return roleCookie;
+
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (token) {
+    const payload = decodeJwtPayload(token);
+    if (payload?.role && typeof payload.role === 'string') return payload.role;
+  }
+
+  return null;
+}
+
+const roleRouteAccess: Record<string, string[]> = {
+  CLIENT: ['/profile'],
+  BARBER: ['/profile', '/barber'],
+  ADMIN: ['/profile', '/barber', '/admin'],
+};
+
+function isRouteAllowed(role: string, pathname: string): boolean {
+  const allowed = roleRouteAccess[role];
+  if (!allowed) return false;
+  return allowed.some((prefix) => pathname.startsWith(prefix));
+}
+
+function getDashboardUrl(role: string): string {
+  switch (role) {
+    case 'ADMIN':
+    case 'SUPER_ADMIN':
+      return '/admin';
+    case 'BARBER':
+      return '/barber/dashboard';
+    default:
+      return '/profile';
+  }
+}
 
 export function middleware(request: NextRequest) {
   const requestId = nanoid(12);
@@ -23,15 +81,18 @@ export function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Route protection — redirect to login if unauthenticated
-  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
-  if (isProtected) {
-    const authHeader = request.headers.get('authorization');
-    const hasToken = authHeader?.startsWith('Bearer ');
-    if (!hasToken) {
-      const loginUrl = new URL('/auth/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+  const isApiTrpc = pathname.startsWith('/api/trpc');
+  const isAuthPage = pathname.startsWith('/auth/') || pathname.startsWith('/login');
+
+  if (!isApiTrpc && !isAuthPage) {
+    const role = getRole(request);
+
+    if (role) {
+      const allowed = isRouteAllowed(role, pathname);
+      if (!allowed) {
+        const dashboardUrl = new URL(getDashboardUrl(role), request.url);
+        return NextResponse.redirect(dashboardUrl);
+      }
     }
   }
 

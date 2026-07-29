@@ -21,16 +21,22 @@ function getRedirectPath(role: string): string {
   }
 }
 
+function setRoleCookie(role: string) {
+  document.cookie = `bp_role=${role}; path=/; max-age=86400; SameSite=Lax`;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { addToast } = useToast();
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
 
   const loginMut = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
+      setRoleCookie(data.user.role);
       addToast('Вход выполнен успешно', 'success');
       setTimeout(() => router.push(getRedirectPath(data.user.role)), 150);
     },
@@ -44,10 +50,16 @@ export default function LoginPage() {
     },
   });
 
+  const isPending = loginMut.isPending;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    loginMut.mutate({ login, password });
+    if (!login || !password) {
+      setError('Заполните все поля');
+      return;
+    }
+    loginMut.mutate({ login, password, rememberMe });
   };
 
   return (
@@ -77,14 +89,30 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-border bg-bg-secondary text-accent cursor-pointer"
+              />
+              <span className="text-xs sm:text-sm text-text-secondary font-body">Запомнить меня</span>
+            </label>
+            <Link href="/auth/forgot-password" className="text-xs sm:text-sm text-accent hover:underline font-body">
+              Забыли пароль?
+            </Link>
+          </div>
+
           {error ? (
             <div className="rounded-lg border border-error/30 bg-error-bg px-4 py-2.5">
               <p className="text-xs text-error font-body">{error}</p>
             </div>
           ) : null}
 
-          <Button type="submit" loading={loginMut.isPending} className="mt-2">
-            Войти
+          <Button type="submit" loading={isPending} className="mt-2">
+            {isPending ? 'Выполняется вход...' : 'Войти'}
           </Button>
         </form>
 

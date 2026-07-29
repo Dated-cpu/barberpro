@@ -41,14 +41,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="fixed right-4 top-4 z-[100] flex flex-col gap-2 max-sm:left-4 max-sm:right-4 max-sm:top-4 max-sm:items-center"
+        className="fixed bottom-4 left-1/2 z-[100] flex -translate-x-1/2 flex-col gap-2 max-sm:left-4 max-sm:right-4 max-sm:translate-x-0"
       >
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role="alert"
             className={cn(
-              'flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg animate-slide-up min-w-[300px] max-sm:w-full',
+              'flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg animate-toast-in min-w-[300px] max-sm:w-full',
               toast.type === 'success' && 'border-success bg-success-bg text-success',
               toast.type === 'error' && 'border-error bg-error-bg text-error',
               toast.type === 'info' && 'border-border-light bg-bg-tertiary text-text-primary',
