@@ -1,5 +1,3 @@
-'use client';
-
 import type { AuthUser } from '@/types/auth';
 
 interface ProfileHeaderProps {
