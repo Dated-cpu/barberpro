@@ -16,7 +16,7 @@ function getRedirectPath(role: string): string {
     case 'SUPER_ADMIN':
       return '/admin';
     case 'BARBER':
-      return '/barber/dashboard';
+      return '/barber';
     default:
       return '/profile';
   }
@@ -28,6 +28,7 @@ function setRoleCookie(role: string) {
 
 export default function LoginPage() {
   const router = useRouter();
+  const utils = trpc.useUtils();
   const { addToast } = useToast();
   const [form, setForm] = useState({ login: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
@@ -38,7 +39,8 @@ export default function LoginPage() {
       authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
       setRoleCookie(data.user.role);
       addToast('Вход выполнен успешно', 'success');
-      setTimeout(() => router.push(getRedirectPath(data.user.role)), 150);
+      utils.auth.me.invalidate();
+      setTimeout(() => router.replace(getRedirectPath(data.user.role)), 200);
     },
     onError: (err) => {
       const msg = err.message === 'Invalid credentials'

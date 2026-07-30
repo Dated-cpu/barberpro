@@ -68,7 +68,7 @@ function getDashboardUrl(role: string): string {
     case 'SUPER_ADMIN':
       return '/admin';
     case 'BARBER':
-      return '/barber/dashboard';
+      return '/barber';
     default:
       return '/profile';
   }
@@ -93,6 +93,10 @@ export function middleware(request: NextRequest) {
         const dashboardUrl = new URL(getDashboardUrl(role), request.url);
         return NextResponse.redirect(dashboardUrl);
       }
+    } else if (pathname.startsWith('/profile') || pathname.startsWith('/admin') || pathname.startsWith('/barber')) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 
