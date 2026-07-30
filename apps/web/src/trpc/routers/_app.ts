@@ -12,6 +12,7 @@ import { portfolioRouter } from './portfolio';
 import { reviewsRouter } from './reviews';
 import { settingsRouter } from './settings';
 import { mediaRouter } from './media';
+import { notificationsRouter } from './notifications';
 
 export const appRouter = router({
   auth: authRouter,
@@ -27,6 +28,7 @@ export const appRouter = router({
   reviews: reviewsRouter,
   settings: settingsRouter,
   media: mediaRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

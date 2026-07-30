@@ -1,9 +1,11 @@
 import prisma from '../db/client';
+import type { Prisma } from '@prisma/client';
 
 export const customerService = {
   async list(barberId: string, search?: string, limit = 20, cursor?: string) {
-    const where: Record<string, unknown> = {
+    const where: Prisma.UserWhereInput = {
       role: 'CLIENT',
+      isActive: true,
       deletedAt: null,
     };
 

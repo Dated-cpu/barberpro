@@ -1,8 +1,15 @@
 import { z } from 'zod';
 import { router, adminProcedure } from '../trpc';
 import { adminService } from '@/server/services/admin';
+import { createClientSchema } from '@/validators/clients';
 
 export const adminRouter = router({
+  addClient: adminProcedure
+    .input(createClientSchema)
+    .mutation(async ({ input }) => {
+      return adminService.addClient(input);
+    }),
+
   listAllAppointments: adminProcedure
     .input(z.object({ status: z.string().optional(), barberId: z.string().uuid().optional(), limit: z.coerce.number().int().min(1).max(100).default(30), cursor: z.string().uuid().optional(), from: z.string().datetime({ offset: true }).optional(), to: z.string().datetime({ offset: true }).optional() }))
     .query(async ({ input }) => {

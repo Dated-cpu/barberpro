@@ -1,9 +1,11 @@
+import { TRPCError } from '@trpc/server';
 import prisma from '../db/client';
+import type { Prisma } from '@prisma/client';
 
 export const adminService = {
   async listAllAppointments(opts: { status?: string; barberId?: string; limit?: number; cursor?: string; from?: Date; to?: Date }) {
-    const where: Record<string, unknown> = { deletedAt: null };
-    if (opts.status && opts.status !== 'ALL') where.status = opts.status;
+    const where: Prisma.AppointmentWhereInput = { deletedAt: null };
+    if (opts.status && opts.status !== 'ALL') where.status = opts.status as Prisma.AppointmentWhereInput['status'];
     if (opts.barberId) where.barberId = opts.barberId;
     if (opts.from && opts.to) {
       where.startTime = { gte: opts.from, lte: opts.to };
@@ -47,9 +49,43 @@ export const adminService = {
     };
   },
 
+  async addClient(data: { firstName: string; lastName: string; phone: string; email?: string | null }) {
+    const existingPhone = await prisma.user.findUnique({ where: { phone: data.phone } });
+    if (existingPhone) {
+      throw new TRPCError({ code: 'CONFLICT', message: 'Телефон уже используется' });
+    }
+    if (data.email) {
+      const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
+      if (existingEmail) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Email уже используется' });
+      }
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        email: data.email ?? null,
+        role: 'CLIENT',
+        isActive: true,
+      },
+    });
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone,
+      email: user.email,
+      createdAt: user.createdAt,
+    };
+  },
+
   async listAllClients(search?: string, limit = 50, cursor?: string) {
-    const where: Record<string, unknown> = {
+    const where: Prisma.UserWhereInput = {
       role: 'CLIENT',
+      isActive: true,
       deletedAt: null,
     };
 
