@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { Context } from './context';
-import { isValidRole } from './middleware/auth';
+import { Permission, hasPermission } from '@/server/auth/permissions';
 
 const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {
@@ -28,7 +28,7 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
   }
-  if (!isValidRole(ctx.user.role, ['ADMIN', 'SUPER_ADMIN'])) {
+  if (!hasPermission(ctx.user.role, Permission.ADMIN_PANEL)) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
   }
   return next({ ctx: { ...ctx, user: ctx.user } });
@@ -38,7 +38,7 @@ export const barberProcedure = t.procedure.use(({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
   }
-  if (!isValidRole(ctx.user.role, ['BARBER', 'ADMIN', 'SUPER_ADMIN'])) {
+  if (!hasPermission(ctx.user.role, Permission.DASHBOARD_VIEW)) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Barber access required' });
   }
   return next({ ctx: { ...ctx, user: ctx.user } });

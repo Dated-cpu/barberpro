@@ -12,6 +12,7 @@ import {
   rescheduleAppointmentSchema,
   clientAppointmentsSchema,
 } from '@/validators/booking';
+import { assertResourceOwner } from '@/server/auth/authorization';
 
 export const appointmentRouter = router({
   create: publicProcedure
@@ -50,8 +51,7 @@ export const appointmentRouter = router({
     .mutation(async ({ ctx, input }) => {
       const appointment = await appointmentService.cancel(
         input.appointmentId,
-        ctx.user!.id,
-        ctx.user!.role,
+        ctx.user!,
         input.reason,
       );
       return appointment;
@@ -91,12 +91,11 @@ export const appointmentRouter = router({
       const appointment = await appointmentService.getById(input.id);
       if (!appointment) throw new TRPCError({ code: 'NOT_FOUND', message: 'Appointment not found' });
 
-      const role = ctx.user!.role;
-      if (role === 'ADMIN' || role === 'SUPER_ADMIN') return appointment;
-      if (role === 'BARBER' && appointment.barberId === ctx.user!.id) return appointment;
-      if (appointment.clientId === ctx.user!.id) return appointment;
+      if (appointment.clientId !== ctx.user!.id) {
+        assertResourceOwner(ctx.user!, appointment.barberId);
+      }
 
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'У вас нет доступа к этой записи' });
+      return appointment;
     }),
 
   getMyAppointments: protectedProcedure

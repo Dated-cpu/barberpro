@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { nanoid } from 'nanoid';
+import { getRoleFromCookie, isRouteAllowed, getDashboardUrl } from '@/server/auth/middleware';
 
 const CSP_HEADER = [
   "default-src 'self'",
@@ -14,64 +15,6 @@ const CSP_HEADER = [
   "form-action 'self'",
 ].join('; ');
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) return null;
-    const decoded = JSON.parse(atob(payload));
-    return decoded;
-  } catch {
-    return null;
-  }
-}
-
-function getCookieValue(cookieHeader: string | null, name: string): string | null {
-  if (!cookieHeader) return null;
-  for (const part of cookieHeader.split(';')) {
-    const trimmed = part.trim();
-    if (trimmed.startsWith(name + '=')) {
-      return trimmed.slice(name.length + 1);
-    }
-  }
-  return null;
-}
-
-function getRole(request: NextRequest): string | null {
-  const token = getCookieValue(request.headers.get('cookie'), 'bp_access_token');
-
-  if (token) {
-    const payload = decodeJwtPayload(token);
-    if (payload?.role && typeof payload.role === 'string') return payload.role;
-  }
-
-  return null;
-}
-
-const roleRouteAccess: Record<string, string[]> = {
-  CLIENT: ['/profile'],
-  BARBER: ['/profile', '/barber'],
-  ADMIN: ['/profile', '/barber', '/admin'],
-  SUPER_ADMIN: ['/profile', '/barber', '/admin'],
-};
-
-function isRouteAllowed(role: string, pathname: string): boolean {
-  const allowed = roleRouteAccess[role];
-  if (!allowed) return false;
-  return allowed.some((prefix) => pathname.startsWith(prefix));
-}
-
-function getDashboardUrl(role: string): string {
-  switch (role) {
-    case 'ADMIN':
-    case 'SUPER_ADMIN':
-      return '/admin';
-    case 'BARBER':
-      return '/barber';
-    default:
-      return '/profile';
-  }
-}
-
 export function middleware(request: NextRequest) {
   const requestId = nanoid(12);
   const requestHeaders = new Headers(request.headers);
@@ -83,19 +26,13 @@ export function middleware(request: NextRequest) {
   const isAuthPage = pathname.startsWith('/auth/') || pathname.startsWith('/login');
 
   if (!isApiTrpc && !isAuthPage) {
-    const role = getRole(request);
+    const role = getRoleFromCookie(request);
 
     if (role) {
-      if (role in roleRouteAccess) {
-        const allowed = isRouteAllowed(role, pathname);
-        if (!allowed) {
-          const dashboardUrl = new URL(getDashboardUrl(role), request.url);
-          return NextResponse.redirect(dashboardUrl);
-        }
-      } else if (pathname.startsWith('/profile') || pathname.startsWith('/admin') || pathname.startsWith('/barber')) {
-        const loginUrl = new URL('/auth/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(loginUrl);
+      const allowed = isRouteAllowed(role, pathname);
+      if (!allowed) {
+        const dashboardUrl = new URL(getDashboardUrl(role), request.url);
+        return NextResponse.redirect(dashboardUrl);
       }
     } else if (pathname.startsWith('/profile') || pathname.startsWith('/admin') || pathname.startsWith('/barber')) {
       const loginUrl = new URL('/auth/login', request.url);

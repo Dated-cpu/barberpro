@@ -8,6 +8,8 @@ import { userRepository } from '../repositories/user';
 import { dispatchEvent, EventTypes } from '../lib/events';
 import logger from '../lib/logger';
 import { NotFoundError, ConflictError } from '../lib/errors';
+import { assertResourceOwner } from '../auth/authorization';
+import type { AuthUser } from '../auth/authorization';
 
 import type { TxClient } from '../db/helpers';
 
@@ -157,24 +159,20 @@ export const appointmentService = {
     });
   },
 
-  async cancel(appointmentId: string, userId: string, userRole: string, reason?: string) {
+  async cancel(appointmentId: string, user: AuthUser, reason?: string) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
 
-      if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN' && userRole !== 'BARBER') {
-        if (appointment.clientId !== userId) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Вы можете отменить только свою запись' });
-        }
-      }
+      assertResourceOwner(user, appointment.clientId);
 
       if (appointment.status === 'CANCELLED' || appointment.status === 'COMPLETED') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Запись уже отменена или завершена' });
       }
 
       let cancelledBy = 'client';
-      if (userRole === 'BARBER') cancelledBy = 'barber';
-      if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') cancelledBy = 'admin';
+      if (user.role === 'BARBER') cancelledBy = 'barber';
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') cancelledBy = 'admin';
 
       const updated = await appointmentRepository.updateStatus(tx, appointmentId, 'CANCELLED', {
         cancelledAt: new Date(),
