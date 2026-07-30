@@ -33,13 +33,27 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
       links: [
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
+          headers() {
+            if (typeof window !== 'undefined') {
+              const match = document.cookie.match(/(?:^|;\s*)bp_csrf_token=([^;]*)/);
+              if (match) {
+                return { 'x-csrf-token': match[1] };
+              }
+            }
+            return {};
+          },
           fetch: async (url, opts) => {
             const reqOpts = opts ?? {};
             const res = await fetch(url, { ...reqOpts, credentials: 'include' });
             if (res.status === 401) {
               const refreshed = await tryRefreshToken();
               if (refreshed) {
-                return fetch(url, { ...reqOpts, credentials: 'include' });
+                const retryHeaders = new Headers(reqOpts.headers);
+                const csrfMatch = document.cookie.match(/(?:^|;\s*)bp_csrf_token=([^;]*)/);
+                if (csrfMatch && csrfMatch[1]) {
+                  retryHeaders.set('x-csrf-token', csrfMatch[1]);
+                }
+                return fetch(url, { ...reqOpts, headers: retryHeaders, credentials: 'include' });
               }
             }
             return res;
