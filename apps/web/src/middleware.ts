@@ -54,6 +54,7 @@ const roleRouteAccess: Record<string, string[]> = {
   CLIENT: ['/profile'],
   BARBER: ['/profile', '/barber'],
   ADMIN: ['/profile', '/barber', '/admin'],
+  SUPER_ADMIN: ['/profile', '/barber', '/admin'],
 };
 
 function isRouteAllowed(role: string, pathname: string): boolean {
@@ -88,10 +89,16 @@ export function middleware(request: NextRequest) {
     const role = getRole(request);
 
     if (role) {
-      const allowed = isRouteAllowed(role, pathname);
-      if (!allowed) {
-        const dashboardUrl = new URL(getDashboardUrl(role), request.url);
-        return NextResponse.redirect(dashboardUrl);
+      if (role in roleRouteAccess) {
+        const allowed = isRouteAllowed(role, pathname);
+        if (!allowed) {
+          const dashboardUrl = new URL(getDashboardUrl(role), request.url);
+          return NextResponse.redirect(dashboardUrl);
+        }
+      } else if (pathname.startsWith('/profile') || pathname.startsWith('/admin') || pathname.startsWith('/barber')) {
+        const loginUrl = new URL('/auth/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
       }
     } else if (pathname.startsWith('/profile') || pathname.startsWith('/admin') || pathname.startsWith('/barber')) {
       const loginUrl = new URL('/auth/login', request.url);
