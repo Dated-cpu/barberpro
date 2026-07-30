@@ -7,6 +7,9 @@ export const customerService = {
       role: 'CLIENT',
       isActive: true,
       deletedAt: null,
+      clientAppointments: {
+        some: { barberId, deletedAt: null },
+      },
     };
 
     if (search) {

@@ -1,5 +1,6 @@
 import prisma from '../db/client';
 import { transaction } from '../db/helpers';
+import { TRPCError } from '@trpc/server';
 
 export const portfolioService = {
   async listByBarber(barberId: string) {
@@ -48,22 +49,34 @@ export const portfolioService = {
     });
   },
 
-  async update(id: string, data: { title?: string; description?: string | null }) {
+  async update(id: string, barberId: string, data: { title?: string; description?: string | null }) {
+    const portfolio = await prisma.portfolio.findUnique({ where: { id, deletedAt: null } });
+    if (!portfolio) throw new TRPCError({ code: 'NOT_FOUND', message: 'Portfolio not found' });
+    if (portfolio.barberId !== barberId) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
     return prisma.portfolio.update({
-      where: { id, deletedAt: null },
+      where: { id },
       data,
     });
   },
 
-  async delete(id: string) {
+  async delete(id: string, barberId: string) {
+    const portfolio = await prisma.portfolio.findUnique({ where: { id, deletedAt: null } });
+    if (!portfolio) throw new TRPCError({ code: 'NOT_FOUND', message: 'Portfolio not found' });
+    if (portfolio.barberId !== barberId) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
     return prisma.portfolio.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   },
 
-  async addImages(portfolioId: string, imageIds: string[]) {
+  async addImages(portfolioId: string, imageIds: string[], barberId: string) {
     return transaction(async (tx) => {
+      const portfolio = await tx.portfolio.findUnique({ where: { id: portfolioId, deletedAt: null }, select: { barberId: true } });
+      if (!portfolio) throw new TRPCError({ code: 'NOT_FOUND', message: 'Portfolio not found' });
+      if (portfolio.barberId !== barberId) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
       const currentCount = await tx.portfolioImage.count({ where: { portfolioId } });
       const images = await Promise.all(
         imageIds.map((mediaId, i) =>

@@ -1,27 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import { isValidRole, canAccessResource } from '../src/trpc/middleware/auth';
+import { assertResourceOwner, assertBarberOrAdmin, assertAppointmentAccess } from '../src/server/auth/authorization';
+import { hasPermission } from '../src/server/auth/permissions';
+import { Permission } from '../src/server/auth/permissions';
 import { updateAppointmentStatusSchema, rescheduleAppointmentSchema, completeAppointmentSchema } from '../src/validators/booking';
 import { moderateReviewSchema } from '../src/validators/reviews';
 
-const uuid = '00000000-0000-0000-0000-000000000001';
+const adminUser = { id: 'admin-1', role: 'ADMIN' as const };
+const superAdminUser = { id: 'super-admin-1', role: 'SUPER_ADMIN' as const };
+const barberUser = { id: 'barber-1', role: 'BARBER' as const };
+const clientUser = { id: 'client-1', role: 'CLIENT' as const };
+
+const resourceId = '00000000-0000-0000-0000-000000000001';
 
 describe('Admin permission rules', () => {
-  it('should allow ADMIN to access admin resources', () => {
-    expect(isValidRole('ADMIN', ['ADMIN', 'SUPER_ADMIN'])).toBe(true);
-    expect(canAccessResource('admin-1', uuid, 'ADMIN')).toBe(true);
+  it('should allow ADMIN to access admin panel', () => {
+    expect(hasPermission(adminUser.role, Permission.ADMIN_PANEL)).toBe(true);
   });
 
-  it('should allow SUPER_ADMIN to access admin resources', () => {
-    expect(isValidRole('SUPER_ADMIN', ['ADMIN', 'SUPER_ADMIN'])).toBe(true);
-    expect(canAccessResource('super-admin-1', uuid, 'SUPER_ADMIN')).toBe(true);
+  it('should allow SUPER_ADMIN to access admin panel', () => {
+    expect(hasPermission(superAdminUser.role, Permission.ADMIN_PANEL)).toBe(true);
   });
 
-  it('should deny CLIENT access to admin resources', () => {
-    expect(isValidRole('CLIENT', ['ADMIN', 'SUPER_ADMIN'])).toBe(false);
+  it('should deny CLIENT access to admin panel', () => {
+    expect(hasPermission(clientUser.role, Permission.ADMIN_PANEL)).toBe(false);
   });
 
-  it('should deny BARBER access to admin resources', () => {
-    expect(isValidRole('BARBER', ['ADMIN', 'SUPER_ADMIN'])).toBe(false);
+  it('should deny BARBER access to admin panel', () => {
+    expect(hasPermission(barberUser.role, Permission.ADMIN_PANEL)).toBe(false);
+  });
+
+  it('should allow ADMIN to access any resource via assertResourceOwner', () => {
+    expect(() => assertResourceOwner(adminUser, resourceId)).not.toThrow();
+  });
+
+  it('should allow SUPER_ADMIN to access any resource via assertResourceOwner', () => {
+    expect(() => assertResourceOwner(superAdminUser, resourceId)).not.toThrow();
   });
 });
 
@@ -29,19 +42,19 @@ describe('Admin appointment actions validation', () => {
   describe('updateAppointmentStatusSchema', () => {
     it('should accept valid status change', () => {
       expect(updateAppointmentStatusSchema.safeParse({
-        id: uuid, status: 'COMPLETED',
+        id: resourceId, status: 'COMPLETED',
       }).success).toBe(true);
     });
 
     it('should accept status change with notes', () => {
       expect(updateAppointmentStatusSchema.safeParse({
-        id: uuid, status: 'CANCELLED', notes: 'Client cancelled',
+        id: resourceId, status: 'CANCELLED', notes: 'Client cancelled',
       }).success).toBe(true);
     });
 
     it('should reject invalid status', () => {
       expect(updateAppointmentStatusSchema.safeParse({
-        id: uuid, status: 'INVALID',
+        id: resourceId, status: 'INVALID',
       }).success).toBe(false);
     });
 
@@ -53,7 +66,7 @@ describe('Admin appointment actions validation', () => {
 
     it('should reject too long notes', () => {
       expect(updateAppointmentStatusSchema.safeParse({
-        id: uuid, status: 'COMPLETED', notes: 'x'.repeat(1001),
+        id: resourceId, status: 'COMPLETED', notes: 'x'.repeat(1001),
       }).success).toBe(false);
     });
   });
@@ -61,24 +74,24 @@ describe('Admin appointment actions validation', () => {
   describe('rescheduleAppointmentSchema', () => {
     it('should accept valid reschedule', () => {
       expect(rescheduleAppointmentSchema.safeParse({
-        id: uuid,
+        id: resourceId,
         startTime: '2026-08-15T14:00:00+03:00',
       }).success).toBe(true);
     });
 
     it('should reject missing startTime', () => {
-      expect(rescheduleAppointmentSchema.safeParse({ id: uuid }).success).toBe(false);
+      expect(rescheduleAppointmentSchema.safeParse({ id: resourceId }).success).toBe(false);
     });
   });
 
   describe('completeAppointmentSchema', () => {
     it('should accept valid complete', () => {
-      expect(completeAppointmentSchema.safeParse({ appointmentId: uuid }).success).toBe(true);
+      expect(completeAppointmentSchema.safeParse({ appointmentId: resourceId }).success).toBe(true);
     });
 
     it('should accept with notes', () => {
       expect(completeAppointmentSchema.safeParse({
-        appointmentId: uuid, notes: 'Great haircut',
+        appointmentId: resourceId, notes: 'Great haircut',
       }).success).toBe(true);
     });
 
@@ -89,11 +102,11 @@ describe('Admin appointment actions validation', () => {
 
   describe('moderateReviewSchema', () => {
     it('should accept moderate review', () => {
-      expect(moderateReviewSchema.safeParse({ reviewId: uuid, status: 'APPROVED' }).success).toBe(true);
+      expect(moderateReviewSchema.safeParse({ reviewId: resourceId, status: 'APPROVED' }).success).toBe(true);
     });
 
     it('should reject invalid status', () => {
-      expect(moderateReviewSchema.safeParse({ reviewId: uuid, status: 'INVALID' }).success).toBe(false);
+      expect(moderateReviewSchema.safeParse({ reviewId: resourceId, status: 'INVALID' }).success).toBe(false);
     });
   });
 });

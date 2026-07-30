@@ -64,7 +64,12 @@ export const settingsService = {
     });
   },
 
-  async deleteBlockedSlot(id: string) {
+  async deleteBlockedSlot(id: string, barberId: string) {
+    const slot = await prisma.blockedSlot.findUnique({ where: { id } });
+    if (!slot) return;
+    if (slot.barberId !== barberId) {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+    }
     return prisma.blockedSlot.update({
       where: { id },
       data: { deletedAt: new Date() },

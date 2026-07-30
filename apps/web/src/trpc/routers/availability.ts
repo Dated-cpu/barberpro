@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, barberProcedure } from '../trpc';
 import { availabilityService } from '../../server/services/availability';
 import { slotQuerySchema, dateSlotsQuerySchema } from '@/validators/booking';
@@ -13,8 +14,10 @@ export const availabilityRouter = router({
   getBarberSchedule: barberProcedure
     .input(dateSlotsQuerySchema)
     .query(async ({ ctx, input }) => {
-      const barberId = input.barberId ?? ctx.user!.id;
-      const appointments = await availabilityService.getBarberSchedule(barberId, input.startDate);
+      if (input.barberId && input.barberId !== ctx.user!.id) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+      }
+      const appointments = await availabilityService.getBarberSchedule(ctx.user!.id, input.startDate);
       return appointments;
     }),
 });

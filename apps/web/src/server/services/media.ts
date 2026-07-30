@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import prisma from '../db/client';
 import { getStorageAdapter } from '../lib/storage';
 import { transaction } from '../db/helpers';
@@ -30,9 +31,16 @@ export const mediaService = {
     });
   },
 
-  async delete(mediaId: string) {
+  async delete(mediaId: string, userId: string) {
     const media = await prisma.media.findUnique({ where: { id: mediaId, deletedAt: null } });
     if (!media) return;
+
+    if (media.uploadedById && media.uploadedById !== userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+      }
+    }
 
     const storage = getStorageAdapter();
     await storage.delete(media.key);

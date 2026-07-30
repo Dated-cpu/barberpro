@@ -22,8 +22,8 @@ export const mediaRouter = router({
 
   delete: barberProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      return mediaService.delete(input.id);
+    .mutation(async ({ ctx, input }) => {
+      return mediaService.delete(input.id, ctx.user!.id);
     }),
 
   list: barberProcedure.query(async ({ ctx }) => {

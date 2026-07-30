@@ -8,7 +8,7 @@ import { userRepository } from '../repositories/user';
 import { dispatchEvent, EventTypes } from '../lib/events';
 import logger from '../lib/logger';
 import { NotFoundError, ConflictError } from '../lib/errors';
-import { assertResourceOwner } from '../auth/authorization';
+import { assertAppointmentAccess, assertBarberOrAdmin } from '../auth/authorization';
 import type { AuthUser } from '../auth/authorization';
 
 import type { TxClient } from '../db/helpers';
@@ -137,10 +137,13 @@ export const appointmentService = {
     }, { isolationLevel: 'Serializable' });
   },
 
-  async confirm(appointmentId: string) {
+  async confirm(appointmentId: string, user: AuthUser) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
+
+      assertBarberOrAdmin(user, appointment.barberId);
+
       if (appointment.status !== 'PENDING') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Можно подтвердить только ожидающую запись' });
       }
@@ -164,7 +167,8 @@ export const appointmentService = {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
 
-      assertResourceOwner(user, appointment.clientId);
+      // Authorization enforced here. Do not remove ownership check.
+      assertAppointmentAccess(user, appointment.clientId, appointment.barberId);
 
       if (appointment.status === 'CANCELLED' || appointment.status === 'COMPLETED') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Запись уже отменена или завершена' });
@@ -192,10 +196,12 @@ export const appointmentService = {
     });
   },
 
-  async complete(appointmentId: string, notes?: string) {
+  async complete(appointmentId: string, user: AuthUser, notes?: string) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
+
+      assertBarberOrAdmin(user, appointment.barberId);
 
       if (appointment.status !== 'CONFIRMED' && appointment.status !== 'IN_PROGRESS') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Можно завершить только подтверждённую запись' });
@@ -215,10 +221,12 @@ export const appointmentService = {
     });
   },
 
-  async markNoShow(appointmentId: string) {
+  async markNoShow(appointmentId: string, user: AuthUser) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
+
+      assertBarberOrAdmin(user, appointment.barberId);
 
       if (appointment.status !== 'CONFIRMED') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Можно отметить только подтверждённую запись' });
@@ -257,10 +265,12 @@ export const appointmentService = {
     });
   },
 
-  async updateStatus(appointmentId: string, status: AppointmentStatus, notes?: string) {
+  async updateStatus(appointmentId: string, status: AppointmentStatus, user: AuthUser, notes?: string) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
+
+      assertBarberOrAdmin(user, appointment.barberId);
 
       const data: Record<string, unknown> = {};
       if (status === 'CANCELLED') { data.cancelledAt = new Date(); data.cancelledBy = 'barber'; }
@@ -271,10 +281,12 @@ export const appointmentService = {
     });
   },
 
-  async reschedule(appointmentId: string, startTime: Date) {
+  async reschedule(appointmentId: string, startTime: Date, user: AuthUser) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
+
+      assertBarberOrAdmin(user, appointment.barberId);
 
       const service = await serviceRepository.findById(tx, appointment.serviceId);
       if (!service) throw new NotFoundError('Service');

@@ -18,19 +18,19 @@ export const portfolioRouter = router({
 
   update: barberProcedure
     .input(updatePortfolioSchema)
-    .mutation(async ({ input }) => {
-      return portfolioService.update(input.id, input);
+    .mutation(async ({ ctx, input }) => {
+      return portfolioService.update(input.id, ctx.user!.id, input);
     }),
 
   delete: barberProcedure
     .input(portfolioIdSchema)
-    .mutation(async ({ input }) => {
-      return portfolioService.delete(input.id);
+    .mutation(async ({ ctx, input }) => {
+      return portfolioService.delete(input.id, ctx.user!.id);
     }),
 
   addImages: barberProcedure
     .input(addImagesSchema)
-    .mutation(async ({ input }) => {
-      return portfolioService.addImages(input.id, input.imageIds);
+    .mutation(async ({ ctx, input }) => {
+      return portfolioService.addImages(input.id, input.imageIds, ctx.user!.id);
     }),
 });

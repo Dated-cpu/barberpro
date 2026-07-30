@@ -12,7 +12,7 @@ import {
   rescheduleAppointmentSchema,
   clientAppointmentsSchema,
 } from '@/validators/booking';
-import { assertResourceOwner } from '@/server/auth/authorization';
+import { assertAppointmentAccess } from '@/server/auth/authorization';
 
 export const appointmentRouter = router({
   create: publicProcedure
@@ -41,8 +41,8 @@ export const appointmentRouter = router({
 
   confirm: barberProcedure
     .input(appointmentIdSchema)
-    .mutation(async ({ input }) => {
-      const appointment = await appointmentService.confirm(input.id);
+    .mutation(async ({ ctx, input }) => {
+      const appointment = await appointmentService.confirm(input.id, ctx.user!);
       return appointment;
     }),
 
@@ -59,29 +59,29 @@ export const appointmentRouter = router({
 
   updateStatus: barberProcedure
     .input(updateAppointmentStatusSchema)
-    .mutation(async ({ input }) => {
-      const appointment = await appointmentService.updateStatus(input.id, input.status, input.notes);
+    .mutation(async ({ ctx, input }) => {
+      const appointment = await appointmentService.updateStatus(input.id, input.status, ctx.user!, input.notes);
       return appointment;
     }),
 
   reschedule: barberProcedure
     .input(rescheduleAppointmentSchema)
-    .mutation(async ({ input }) => {
-      const appointment = await appointmentService.reschedule(input.id, new Date(input.startTime));
+    .mutation(async ({ ctx, input }) => {
+      const appointment = await appointmentService.reschedule(input.id, new Date(input.startTime), ctx.user!);
       return appointment;
     }),
 
   complete: barberProcedure
     .input(completeAppointmentSchema)
-    .mutation(async ({ input }) => {
-      const appointment = await appointmentService.complete(input.appointmentId, input.notes);
+    .mutation(async ({ ctx, input }) => {
+      const appointment = await appointmentService.complete(input.appointmentId, ctx.user!, input.notes);
       return appointment;
     }),
 
   markNoShow: barberProcedure
     .input(markNoShowSchema)
-    .mutation(async ({ input }) => {
-      const appointment = await appointmentService.markNoShow(input.appointmentId);
+    .mutation(async ({ ctx, input }) => {
+      const appointment = await appointmentService.markNoShow(input.appointmentId, ctx.user!);
       return appointment;
     }),
 
@@ -91,9 +91,7 @@ export const appointmentRouter = router({
       const appointment = await appointmentService.getById(input.id);
       if (!appointment) throw new TRPCError({ code: 'NOT_FOUND', message: 'Appointment not found' });
 
-      if (appointment.clientId !== ctx.user!.id) {
-        assertResourceOwner(ctx.user!, appointment.barberId);
-      }
+      assertAppointmentAccess(ctx.user!, appointment.clientId, appointment.barberId);
 
       return appointment;
     }),

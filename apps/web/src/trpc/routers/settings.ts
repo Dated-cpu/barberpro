@@ -30,8 +30,8 @@ export const settingsRouter = router({
 
   deleteBlockedSlot: barberProcedure
     .input(deleteBlockedSlotSchema)
-    .mutation(async ({ input }) => {
-      return settingsService.deleteBlockedSlot(input.id);
+    .mutation(async ({ ctx, input }) => {
+      return settingsService.deleteBlockedSlot(input.id, ctx.user!.id);
     }),
 
   updateProfile: barberProcedure
