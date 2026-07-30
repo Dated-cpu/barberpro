@@ -100,7 +100,7 @@ export function NotificationDropdown() {
   } else {
     body = (
       <div className="flex flex-col">
-        {notificationsData.items.map((n: any) => (
+        {notificationsData.items.map((n: { id: string; type: string; title: string; body?: string | null; isRead: boolean; createdAt: string | Date }) => (
           <NotificationItem key={n.id} n={n} />
         ))}
       </div>

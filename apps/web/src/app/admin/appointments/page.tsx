@@ -21,7 +21,6 @@ const STATUS_COLORS: Record<string, 'warning' | 'accent' | 'success' | 'error' |
 };
 
 const statuses = ['ALL', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const;
-type UpdateStatus = 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
 export default function AdminAppointments() {
   const { addToast } = useToast();

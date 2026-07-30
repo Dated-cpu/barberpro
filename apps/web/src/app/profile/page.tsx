@@ -84,7 +84,7 @@ function ProfileTab({ user }: { user: AuthUser }) {
   const [queryKey, setQueryKey] = useState(0);
 
   const { data: userFull } = trpc.auth.me.useQuery();
-  const createdAt = (userFull as Record<string, unknown>)?.createdAt as string | undefined;
+  const createdAt = userFull?.createdAt ? String(userFull.createdAt) : undefined;
 
   const [form, setForm] = useState({
     firstName: user.firstName,

@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { transaction } from '../db/helpers';
 import prisma from '../db/client';
+import type { AppointmentStatus } from '@prisma/client';
 import { appointmentRepository } from '../repositories/appointment';
 import { serviceRepository } from '../repositories/service';
 import { userRepository } from '../repositories/user';
@@ -258,7 +259,7 @@ export const appointmentService = {
     });
   },
 
-  async updateStatus(appointmentId: string, status: string, notes?: string) {
+  async updateStatus(appointmentId: string, status: AppointmentStatus, notes?: string) {
     return transaction(async (tx) => {
       const appointment = await appointmentRepository.findById(tx, appointmentId);
       if (!appointment) throw new NotFoundError('Appointment');
@@ -267,7 +268,7 @@ export const appointmentService = {
       if (status === 'CANCELLED') { data.cancelledAt = new Date(); data.cancelledBy = 'barber'; }
       if (notes !== undefined) data.notes = notes;
 
-      const updated = await appointmentRepository.updateStatus(tx, appointmentId, status as any, data);
+      const updated = await appointmentRepository.updateStatus(tx, appointmentId, status, data);
       return updated;
     });
   },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { trpc } from '@/trpc/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,6 @@ export default function PortfolioPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [addingImagesTo, setAddingImagesTo] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,7 +33,7 @@ export default function PortfolioPage() {
 
   const uploadMut = trpc.media.upload.useMutation();
   const addImagesMut = trpc.portfolio.addImages.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); addToast('Фото добавлены', 'success'); setAddingImagesTo(null); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); addToast('Фото добавлены', 'success'); },
     onError: (e) => addToast(e.message, 'error'),
   });
 
@@ -110,8 +110,8 @@ export default function PortfolioPage() {
               {p.images.length > 0 ? (
                 <div className="grid grid-cols-2 gap-0.5">
                   {p.images.slice(0, 4).map((img) => (
-                    <div key={img.id} className="aspect-square bg-bg-tertiary overflow-hidden">
-                      <img src={img.media.url} alt={img.media.alt ?? ''} className="h-full w-full object-cover" loading="lazy" />
+                    <div key={img.id} className="relative aspect-square bg-bg-tertiary overflow-hidden">
+                      <Image src={img.media.url} alt={img.media.alt ?? ''} fill className="object-cover" sizes="(max-width: 640px) 50vw, 33vw" />
                     </div>
                   ))}
                 </div>

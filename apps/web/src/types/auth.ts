@@ -25,6 +25,7 @@ export interface AuthUser {
   emailVerified?: boolean;
   avatarId?: string | null;
   description?: string | null;
+  createdAt?: Date | string;
 }
 
 export interface AuthTokens {

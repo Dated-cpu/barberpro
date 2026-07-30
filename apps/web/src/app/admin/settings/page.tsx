@@ -10,26 +10,16 @@ import { PageHeader } from '@/components/shared/page-header';
 
 const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-type SettingsMap = Record<string, string>;
-
 export default function AdminSettings() {
   const { addToast } = useToast();
   const utils = trpc.useUtils();
 
-  const profileResult = (trpc.auth as any).getProfile.useQuery();
-  const profile: { firstName: string; lastName: string; phone: string; email: string; description?: string } | undefined = profileResult.data;
-  const wdResult = (trpc.settings as any).getWorkingDays.useQuery();
-  const workingDays: { id: string; dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean }[] | undefined = wdResult.data;
-  const rawSettingsResult = (trpc.settings as any).adminGetSystemSettings.useQuery();
-  const rawSettings: { key: string; value: unknown }[] | undefined = rawSettingsResult.data;
-
-  const rawItems: { key: string; value: unknown }[] | undefined = rawSettings;
-  const settings: SettingsMap = {};
-  if (rawItems) {
-    for (const s of rawItems) {
-      settings[s.key] = typeof s.value === 'string' ? (s.value as string) : JSON.stringify(s.value);
-    }
-  }
+  const profileResult = trpc.auth.getProfile.useQuery();
+  const profile = profileResult.data;
+  const wdResult = trpc.settings.getWorkingDays.useQuery();
+  const workingDays = wdResult.data;
+  const rawSettingsResult = trpc.settings.adminGetSystemSettings.useQuery();
+  const rawSettings = rawSettingsResult.data as { key: string; value: string }[] | undefined;
 
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', phone: '', email: '' });
   const [editingDay, setEditingDay] = useState<{ dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean; id?: string } | null>(null);
@@ -49,34 +39,36 @@ export default function AdminSettings() {
   }, [profile]);
 
   useEffect(() => {
+    const getVal = (key: string) => {
+      const s = rawSettings?.find((item) => item.key === key);
+      return s ? (typeof s.value === 'string' ? s.value : JSON.stringify(s.value)) : '';
+    };
     setSeo({
-      title: settings['seo_title'] ?? '',
-      description: settings['seo_description'] ?? '',
-      keywords: settings['seo_keywords'] ?? '',
-      ogImage: settings['seo_og_image'] ?? '',
+      title: getVal('seo_title'),
+      description: getVal('seo_description'),
+      keywords: getVal('seo_keywords'),
+      ogImage: getVal('seo_og_image'),
     });
     setSocial({
-      instagram: settings['social_instagram'] ?? '',
-      telegram: settings['social_telegram'] ?? '',
-      whatsapp: settings['social_whatsapp'] ?? '',
+      instagram: getVal('social_instagram'),
+      telegram: getVal('social_telegram'),
+      whatsapp: getVal('social_whatsapp'),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawSettings]);
 
-  const updateProfileMut = (trpc.settings as any).updateProfile.useMutation({
-    onSuccess: () => { (utils.auth as any).getProfile.invalidate(); utils.auth.me.invalidate(); addToast('Профиль обновлён', 'success'); },
-    onError: (e: Error) => addToast(e.message, 'error'),
-  }) as { mutate: (data: { firstName?: string; lastName?: string; phone?: string; email?: string }) => void; isPending: boolean };
+  const updateProfileMut = trpc.settings.updateProfile.useMutation({
+    onSuccess: () => { utils.auth.getProfile.invalidate(); utils.auth.me.invalidate(); addToast('Профиль обновлён', 'success'); },
+    onError: (e) => addToast(e.message ?? 'Ошибка', 'error'),
+  });
 
-  const upsertDayMut = (trpc.settings as any).upsertWorkingDay.useMutation({
-    onSuccess: () => { (utils.settings as any).getWorkingDays.invalidate(); addToast('Расписание сохранено', 'success'); setEditingDay(null); },
-    onError: (e: Error) => addToast(e.message, 'error'),
-  }) as { mutate: (data: { dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean; id?: string }) => void; isPending: boolean };
+  const upsertDayMut = trpc.settings.upsertWorkingDay.useMutation({
+    onSuccess: () => { utils.settings.getWorkingDays.invalidate(); addToast('Расписание сохранено', 'success'); setEditingDay(null); },
+    onError: (e) => addToast(e.message ?? 'Ошибка', 'error'),
+  });
 
-  const upsertSettingMut = (trpc.settings.adminUpsertSetting as any).useMutation({
-    onSuccess: () => { (utils.settings as any).adminGetSystemSettings.invalidate(); },
-    onError: (e: Error) => addToast(e.message, 'error'),
-  }) as { mutateAsync: (input: { key: string; value: string; type: string; description?: string }) => Promise<unknown>; isPending: boolean; mutate: (input: { key: string; value: string; type: string; description?: string }) => void };
+  const upsertSettingMut = trpc.settings.adminUpsertSetting.useMutation({
+    onSuccess: () => { utils.settings.adminGetSystemSettings.invalidate(); },
+  }) as unknown as { mutateAsync: (input: { key: string; value: string; type: string; description?: string }) => Promise<unknown>; isPending: boolean };
 
   function handleProfileSave() {
     updateProfileMut.mutate({

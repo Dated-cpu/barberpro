@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 
 type ViewMode = 'day' | 'week';
-type AppStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 type UpdateStatus = 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 8); // 08:00 – 17:00
@@ -70,7 +69,6 @@ export default function CalendarPage() {
   });
 
   const { data: blockedSlots } = trpc.settings.getBlockedSlots.useQuery();
-  const { data: workingDays } = trpc.settings.getWorkingDays.useQuery();
 
   const updateStatusMut = trpc.appointment.updateStatus.useMutation({
     onSuccess: () => { utils.dashboard.calendar.invalidate(); addToast('Статус обновлён', 'success'); },

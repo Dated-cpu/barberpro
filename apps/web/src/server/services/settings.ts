@@ -108,10 +108,11 @@ export const settingsService = {
   },
 
   async upsertSystemSetting(data: { key: string; value: unknown; type: string; description?: string | null }) {
+    const jsonValue = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
     return prisma.setting.upsert({
       where: { scopeId_key: { scopeId: 'system', key: data.key } },
-      update: { value: data.value as any, type: data.type, description: data.description ?? null },
-      create: { scopeId: 'system', key: data.key, value: data.value as any, type: data.type, description: data.description ?? null },
+      update: { value: jsonValue, type: data.type, description: data.description ?? null },
+      create: { scopeId: 'system', key: data.key, value: jsonValue, type: data.type, description: data.description ?? null },
     });
   },
 };

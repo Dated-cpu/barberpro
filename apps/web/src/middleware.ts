@@ -37,11 +37,17 @@ function getCookieValue(cookieHeader: string | null, name: string): string | nul
 }
 
 function getRole(request: NextRequest): string | null {
-  const roleCookie = getCookieValue(request.headers.get('cookie'), 'bp_role');
-  if (roleCookie) return roleCookie;
+  let token: string | null = null;
 
   const authHeader = request.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  }
+
+  if (!token) {
+    token = getCookieValue(request.headers.get('cookie'), 'bp_access_token');
+  }
+
   if (token) {
     const payload = decodeJwtPayload(token);
     if (payload?.role && typeof payload.role === 'string') return payload.role;

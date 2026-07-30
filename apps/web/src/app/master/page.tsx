@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GoldThread } from '@/components/shared/gold-thread';
@@ -112,9 +113,9 @@ export default function MasterPage() {
           <div className="flex flex-col items-center text-center gap-6 sm:gap-8">
             <Reveal animation="scale-in" delay={200}>
               <div className="relative">
-                <div className="mx-auto h-32 w-32 sm:h-40 sm:w-40 overflow-hidden rounded-full border-2 border-gold/30 bg-espresso shadow-[0_0_40px_var(--color-gold-glow)]">
+                <div className="relative mx-auto h-32 w-32 sm:h-40 sm:w-40 overflow-hidden rounded-full border-2 border-gold/30 bg-espresso shadow-[0_0_40px_var(--color-gold-glow)]">
                   {master.photoUrl ? (
-                    <img src={master.photoUrl} alt={master.name} className="h-full w-full object-cover" />
+                    <Image src={master.photoUrl} alt={master.name} fill className="object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
                       <span className="font-display text-4xl sm:text-5xl font-bold text-gold/60">

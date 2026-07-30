@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Reveal } from '@/components/shared/reveal';
 import { GoldThread } from '@/components/shared/gold-thread';
@@ -119,10 +120,13 @@ export function HeroCinematic({ backgroundImage, master }: HeroCinematicProps) {
       {/* Background image with Ken Burns effect */}
       {backgroundImage ? (
         <div className="absolute inset-0 overflow-hidden">
-          <img
+          <Image
             src={backgroundImage}
             alt=""
-            className="h-full w-full object-cover animate-[ken-burns_20s_ease-in-out_infinite_alternate]"
+            fill
+            className="object-cover animate-[ken-burns_20s_ease-in-out_infinite_alternate]"
+            sizes="100vw"
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-b from-obsidian/70 via-obsidian/50 to-obsidian/80" />
           <div className="absolute inset-0 bg-gradient-to-r from-obsidian/30 via-transparent to-obsidian/30" />

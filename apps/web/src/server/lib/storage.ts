@@ -31,7 +31,7 @@ class LocalStorageAdapter implements StorageAdapter {
     this.publicUrl = config.publicUrl ?? '/uploads';
   }
 
-  async upload(filename: string, buffer: Buffer, mimeType: string): Promise<UploadResult> {
+  async upload(filename: string, buffer: Buffer, _mimeType: string): Promise<UploadResult> {
     const fs = await import('fs/promises');
     const path = await import('path');
     const { nanoid } = await import('nanoid');
