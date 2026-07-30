@@ -20,6 +20,14 @@ const statusColors: Record<string, string> = {
   NO_SHOW: 'text-error',
 };
 
+interface HistoryServiceItem {
+  id: string;
+  serviceId: string;
+  priceAtBooking: string;
+  durationAtBooking: number;
+  service: { id: string; name: string; duration: number; price: string };
+}
+
 interface HistoryItem {
   id: string;
   startTime: string;
@@ -27,6 +35,7 @@ interface HistoryItem {
   status: string;
   priceAtBooking: string;
   service: { id: string; name: string; duration: number };
+  appointmentServices?: HistoryServiceItem[];
   barber: { id: string; firstName: string; lastName: string };
 }
 
@@ -81,9 +90,16 @@ export function AppointmentHistory({ onRebook: _onRebook }: AppointmentHistoryPr
           return (
             <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated p-3 sm:px-4">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-text-primary font-body">
-                  {a.service.name}
-                </p>
+                <div>
+                  {(a.appointmentServices?.length ?? 0) > 1
+                    ? a.appointmentServices!.map((as) => (
+                        <p key={as.id} className="truncate text-sm font-medium text-text-primary font-body">
+                          {as.service.name}
+                        </p>
+                      ))
+                    : <p className="truncate text-sm font-medium text-text-primary font-body">{a.service.name}</p>
+                  }
+                </div>
                 <p className="truncate text-xs text-text-secondary font-body">
                   {a.barber.firstName} {a.barber.lastName} &middot; {dateStr} в {timeStr}
                 </p>

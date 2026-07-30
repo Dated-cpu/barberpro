@@ -43,7 +43,7 @@ export default function CalendarPage() {
   const [showBlockSlot, setShowBlockSlot] = useState(false);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [rescheduleTime, setRescheduleTime] = useState('');
-  const [newAppt, setNewAppt] = useState({ clientName: '', clientPhone: '', startTime: '', serviceId: '' });
+  const [newAppt, setNewAppt] = useState({ clientName: '', clientPhone: '', startTime: '', serviceIds: [] as string[] });
   const [blockSlot, setBlockSlot] = useState({ startTime: '', endTime: '', reason: '' });
   const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
 
@@ -81,7 +81,7 @@ export default function CalendarPage() {
   });
 
   const createManualMut = trpc.appointment.createManual.useMutation({
-    onSuccess: () => { utils.dashboard.calendar.invalidate(); setShowManualCreate(false); setNewAppt({ clientName: '', clientPhone: '', startTime: '', serviceId: '' }); addToast('Запись создана', 'success'); },
+    onSuccess: () => { utils.dashboard.calendar.invalidate(); setShowManualCreate(false); setNewAppt({ clientName: '', clientPhone: '', startTime: '', serviceIds: [] }); addToast('Запись создана', 'success'); },
     onError: (e) => addToast(e.message, 'error'),
   });
 
@@ -132,7 +132,7 @@ export default function CalendarPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Календарь" action={
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => { setShowManualCreate(true); setNewAppt({ ...newAppt, startTime: new Date().toISOString().slice(0, 16) }); }}>+ Запись</Button>
+          <Button size="sm" variant="secondary" onClick={() => { setShowManualCreate(true); setNewAppt({ clientName: '', clientPhone: '', startTime: new Date().toISOString().slice(0, 16), serviceIds: [] }); }}>+ Запись</Button>
           <Button size="sm" variant="secondary" onClick={() => setShowBlockSlot(true)}>Блокировка</Button>
           <div className="flex gap-1 rounded-xl border border-border bg-bg-secondary p-1">
             <button onClick={() => setViewMode('day')} className={cn('rounded-lg px-4 py-2 text-sm transition-colors font-body', viewMode === 'day' ? 'bg-accent text-text-inverse' : 'text-text-secondary hover:text-text-primary')}>День</button>
@@ -143,16 +143,23 @@ export default function CalendarPage() {
 
       {/* Manual Create Modal */}
       <Modal open={showManualCreate} onClose={() => setShowManualCreate(false)} title="Создать запись">
-        <form onSubmit={(e) => { e.preventDefault(); if (newAppt.clientName && newAppt.startTime && newAppt.serviceId) createManualMut.mutate({ clientName: newAppt.clientName, clientPhone: newAppt.clientPhone, startTime: new Date(newAppt.startTime).toISOString(), serviceId: newAppt.serviceId }); }} className="flex flex-col gap-4">
+        <form onSubmit={(e) => { e.preventDefault(); if (newAppt.clientName && newAppt.startTime && newAppt.serviceIds.length > 0) createManualMut.mutate({ clientName: newAppt.clientName, clientPhone: newAppt.clientPhone, startTime: new Date(newAppt.startTime).toISOString(), services: newAppt.serviceIds }); }} className="flex flex-col gap-4">
           <Input id="mc-name" label="Имя клиента" value={newAppt.clientName} onChange={(e) => setNewAppt({ ...newAppt, clientName: e.target.value })} required />
           <Input id="mc-phone" label="Телефон" value={newAppt.clientPhone} onChange={(e) => setNewAppt({ ...newAppt, clientPhone: e.target.value })} required />
           <Input id="mc-time" label="Время" type="datetime-local" value={newAppt.startTime} onChange={(e) => setNewAppt({ ...newAppt, startTime: e.target.value })} required />
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-tertiary font-body">Услуга</label>
-            <select value={newAppt.serviceId} onChange={(e) => setNewAppt({ ...newAppt, serviceId: e.target.value })} required className="rounded-lg border border-border bg-bg-secondary px-3 py-2.5 text-sm text-text-primary font-body">
-              <option value="">Выберите услугу</option>
-              {services?.map((s) => <option key={s.id} value={s.id}>{s.name} — {Number(s.price).toLocaleString()} ₽</option>)}
-            </select>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs text-text-tertiary font-body">Услуги</label>
+            <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+              {services?.map((s) => {
+                const isSelected = newAppt.serviceIds.includes(s.id);
+                return (
+                  <label key={s.id} className={cn('flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors', isSelected ? 'border-accent bg-accent-muted' : 'border-border hover:border-accent/50')}>
+                    <span className="text-text-primary font-body">{s.name} — {Number(s.price).toLocaleString()} ₽</span>
+                    <input type="checkbox" checked={isSelected} onChange={() => setNewAppt((p) => ({ ...p, serviceIds: isSelected ? p.serviceIds.filter((id) => id !== s.id) : [...p.serviceIds, s.id] }))} className="accent-accent" />
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <Button type="submit" loading={createManualMut.isPending}>Создать</Button>
         </form>
@@ -246,7 +253,7 @@ export default function CalendarPage() {
                         {new Date(a.startTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <p className="truncate text-text-primary font-medium">{a.client.firstName} {a.client.lastName}</p>
-                      <p className="truncate text-text-tertiary">{a.service.name}</p>
+                      <p className="truncate text-text-tertiary">{a.appointmentServices?.map((as) => as.service.name).join(', ') || a.service?.name}</p>
                       {isSelected && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {STATUS_ACTIONS.filter((act) => act.status !== a.status && act.status !== 'NO_SHOW').map((act) => (

@@ -144,7 +144,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 export default function BookingPage() {
   const [step, setStep] = useState<Step>('service');
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [appointmentResult, setAppointmentResult] = useState<AppointmentResult | null>(null);
@@ -164,14 +164,22 @@ export default function BookingPage() {
   const createAppointment = trpc.appointment.create.useMutation();
 
   const barber = useMemo(() => barbers?.[0] ?? null, [barbers]);
-  const selectedService = useMemo(
-    () => services?.find((s) => s.id === selectedServiceId) ?? null,
-    [services, selectedServiceId],
+  const selectedServices = useMemo(
+    () => services?.filter((s) => selectedServiceIds.includes(s.id)) ?? [],
+    [services, selectedServiceIds],
+  );
+  const totalDuration = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + s.duration, 0),
+    [selectedServices],
+  );
+  const totalPrice = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + Number(s.price), 0),
+    [selectedServices],
   );
 
   const { data: availableSlots, isFetching: slotsLoading } = trpc.availability.getAvailableSlots.useQuery(
-    { barberId: barber?.id ?? '', date: selectedDate || '', serviceId: selectedServiceId || '' },
-    { enabled: !!barber && !!selectedDate && !!selectedServiceId },
+    { barberId: barber?.id ?? '', date: selectedDate || '', serviceIds: selectedServiceIds },
+    { enabled: !!barber && !!selectedDate && selectedServiceIds.length > 0 },
   );
 
   const today = useMemo(() => new Date(), []);
@@ -184,6 +192,12 @@ export default function BookingPage() {
       }),
     [today],
   );
+
+  const toggleService = useCallback((id: string) => {
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id],
+    );
+  }, []);
 
   const handleConfirm = useCallback(async () => {
     const allAccepted = Object.values(consents).every(Boolean);
@@ -205,7 +219,7 @@ export default function BookingPage() {
 
       const result = await createAppointment.mutateAsync({
         barberId: barber!.id,
-        serviceId: selectedServiceId!,
+        services: selectedServiceIds,
         startTime,
         clientName: form.name,
         clientPhone: form.phone,
@@ -215,9 +229,9 @@ export default function BookingPage() {
       setAppointmentResult({
         id: result.id,
         startTime,
-        serviceName: selectedService?.name || '',
-        duration: selectedService?.duration ?? 0,
-        price: selectedService ? Number(selectedService.price) : 0,
+        serviceName: selectedServices.map((s) => s.name).join(', '),
+        duration: totalDuration,
+        price: totalPrice,
         barberName: barber ? `${barber.firstName} ${barber.lastName}` : '',
       });
       setStep('confirm');
@@ -227,11 +241,11 @@ export default function BookingPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [consents, selectedDate, selectedSlot, recordConsent, createAppointment, barber, selectedServiceId, selectedService, form]);
+  }, [consents, selectedDate, selectedSlot, recordConsent, createAppointment, barber, selectedServiceIds, selectedServices, totalDuration, totalPrice, form]);
 
   const reset = useCallback(() => {
     setStep('service');
-    setSelectedServiceId(null);
+    setSelectedServiceIds([]);
     setSelectedDate(null);
     setSelectedSlot(null);
     setAppointmentResult(null);
@@ -280,31 +294,60 @@ export default function BookingPage() {
               </div>
             ) : services && services.length > 0 ? (
               <div className="flex flex-col gap-3">
-                {services.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSelectedServiceId(s.id);
-                      setStep('date');
-                    }}
-                    className={cn(
-                      'flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 min-h-[64px] active:scale-[0.98]',
-                      selectedServiceId === s.id
-                        ? 'border-accent bg-accent-muted'
-                        : 'border-border bg-bg-elevated hover:border-accent/50',
-                    )}
-                  >
-                    <div className="min-w-0 flex-1 pr-3">
-                      <h3 className="font-display text-base font-semibold text-text-primary truncate">
-                        {s.name}
-                      </h3>
-                      <p className="text-sm text-text-tertiary font-body">{s.duration} мин</p>
+                {services.map((s) => {
+                  const isSelected = selectedServiceIds.includes(s.id);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => toggleService(s.id)}
+                      className={cn(
+                        'flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 min-h-[64px] active:scale-[0.98]',
+                        isSelected
+                          ? 'border-accent bg-accent-muted'
+                          : 'border-border bg-bg-elevated hover:border-accent/50',
+                      )}
+                    >
+                      <div className="min-w-0 flex-1 pr-3">
+                        <h3 className="font-display text-base font-semibold text-text-primary truncate">
+                          {s.name}
+                        </h3>
+                        <p className="text-sm text-text-tertiary font-body">{s.duration} мин</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-base sm:text-lg font-semibold text-accent">
+                          {Number(s.price).toLocaleString('ru-RU')} ₽
+                        </span>
+                        <div className={cn(
+                          'flex h-5 w-5 items-center justify-center rounded border transition-colors',
+                          isSelected ? 'border-accent bg-accent text-text-inverse' : 'border-border',
+                        )}>
+                          {isSelected && (
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+                {selectedServiceIds.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-accent/30 bg-accent-muted/50 p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary font-body">Всего:</span>
+                      <span className="font-semibold text-text-primary font-body">
+                        {totalDuration} мин · {totalPrice.toLocaleString('ru-RU')} ₽
+                      </span>
                     </div>
-                    <span className="text-base sm:text-lg font-semibold text-accent shrink-0">
-                      {Number(s.price).toLocaleString('ru-RU')} ₽
-                    </span>
-                  </button>
-                ))}
+                  </div>
+                )}
+                <Button
+                  onClick={() => setStep('date')}
+                  className="mt-2"
+                  disabled={selectedServiceIds.length === 0}
+                >
+                  Выбрать время
+                </Button>
               </div>
             ) : (
               <p className="text-sm text-text-tertiary font-body text-center py-12">
@@ -396,16 +439,26 @@ export default function BookingPage() {
 
         {step === 'info' && (
           <div key="info" className="flex flex-col gap-4 animate-[fade-in_0.25s_ease-out]">
-            {selectedService && (
+            {selectedServices.length > 0 && (
               <div className="rounded-xl border border-accent/30 bg-accent-muted p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-text-tertiary font-body uppercase tracking-wider">Выбранная услуга</p>
-                    <p className="mt-0.5 font-display font-semibold text-text-primary">{selectedService.name}</p>
+                <p className="text-xs text-text-tertiary font-body uppercase tracking-wider mb-2">Выбранные услуги</p>
+                <div className="space-y-2">
+                  {selectedServices.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between">
+                      <span className="text-sm font-display font-semibold text-text-primary">{s.name}</span>
+                      <span className="text-sm font-semibold text-accent shrink-0 ml-3">
+                        {Number(s.price).toLocaleString('ru-RU')} ₽
+                      </span>
+                    </div>
+                  ))}
+                  <div className="border-t border-accent/20 pt-2 flex items-center justify-between">
+                    <span className="text-xs text-text-tertiary font-body">
+                      {totalDuration} мин · всего
+                    </span>
+                    <span className="text-sm font-bold text-accent">
+                      {totalPrice.toLocaleString('ru-RU')} ₽
+                    </span>
                   </div>
-                  <span className="text-base font-semibold text-accent shrink-0 ml-3">
-                    {Number(selectedService.price).toLocaleString('ru-RU')} ₽
-                  </span>
                 </div>
                 {selectedDate && selectedSlot && (
                   <p className="mt-2 text-xs text-text-tertiary font-body">

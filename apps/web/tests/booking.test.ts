@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   slotQuerySchema,
   dateSlotsQuerySchema,
+  createAppointmentSchema,
 } from '../src/validators/booking';
 import {
   parseTimeInTimezone,
@@ -194,6 +195,17 @@ describe('slotQuerySchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('should accept multiple serviceIds', () => {
+    const result = slotQuerySchema.safeParse({
+      date: '2026-08-15',
+      serviceIds: [
+        '00000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0000-000000000003',
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('dateSlotsQuerySchema', () => {
@@ -214,5 +226,72 @@ describe('dateSlotsQuerySchema', () => {
       serviceId: '00000000-0000-0000-0000-000000000002',
     });
     expect(result.success).toBe(true);
+  });
+
+  it('should accept multiple serviceIds', () => {
+    const result = dateSlotsQuerySchema.safeParse({
+      startDate: '2026-08-15',
+      endDate: '2026-08-21',
+      serviceIds: [
+        '00000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0000-000000000003',
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('createAppointmentSchema', () => {
+  it('should accept single serviceId', () => {
+    const result = createAppointmentSchema.safeParse({
+      serviceId: '00000000-0000-0000-0000-000000000002',
+      startTime: '2026-08-15T10:00:00+03:00',
+      clientName: 'Иван',
+      clientPhone: '+79991234567',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept multiple services', () => {
+    const result = createAppointmentSchema.safeParse({
+      services: [
+        '00000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0000-000000000003',
+      ],
+      startTime: '2026-08-15T10:00:00+03:00',
+      clientName: 'Иван',
+      clientPhone: '+79991234567',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject both serviceId and services', () => {
+    const result = createAppointmentSchema.safeParse({
+      serviceId: '00000000-0000-0000-0000-000000000002',
+      services: ['00000000-0000-0000-0000-000000000003'],
+      startTime: '2026-08-15T10:00:00+03:00',
+      clientName: 'Иван',
+      clientPhone: '+79991234567',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject empty services array', () => {
+    const result = createAppointmentSchema.safeParse({
+      services: [],
+      startTime: '2026-08-15T10:00:00+03:00',
+      clientName: 'Иван',
+      clientPhone: '+79991234567',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject missing service', () => {
+    const result = createAppointmentSchema.safeParse({
+      startTime: '2026-08-15T10:00:00+03:00',
+      clientName: 'Иван',
+      clientPhone: '+79991234567',
+    });
+    expect(result.success).toBe(false);
   });
 });

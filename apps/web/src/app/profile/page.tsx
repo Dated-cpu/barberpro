@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { ProfileHeader } from '@/components/profile/profile-header';
 import { UpcomingAppointmentCard, UpcomingAppointmentCardSkeleton, UpcomingAppointmentEmpty, type UpcomingAppointment } from '@/components/profile/upcoming-appointment-card';
 import { AppointmentHistory } from '@/components/profile/appointment-history';
+import { CustomerStats } from '@/components/profile/customer-stats';
 import type { AuthUser } from '@/types/auth';
 
 type Tab = 'profile' | 'security';
@@ -114,6 +115,8 @@ function ProfileTab({ user }: { user: AuthUser }) {
   return (
     <div className="flex flex-col gap-6">
       <ProfileHeader user={user} createdAt={createdAt} />
+
+      <CustomerStats />
 
       {upcomingLoading ? (
         <UpcomingAppointmentCardSkeleton />

@@ -4,14 +4,21 @@ const phoneRegex = /^\+7\d{10}$/;
 
 export const createAppointmentSchema = z.object({
   barberId: z.string().uuid().optional(),
-  serviceId: z.string().uuid(),
+  serviceId: z.string().uuid().optional(),
+  services: z.array(z.string().uuid()).min(1).optional(),
   branchId: z.string().uuid().nullable().optional(),
   startTime: z.string().datetime({ offset: true }),
   clientNotes: z.string().max(500).optional().nullable(),
   clientPhone: z.string().regex(phoneRegex, 'Некорректный номер телефона. Формат: +7XXXXXXXXXX'),
   clientName: z.string().min(2).max(100),
   clientEmail: z.string().email().optional().nullable(),
-});
+}).refine(
+  (data) => data.serviceId || (data.services && data.services.length > 0),
+  { message: 'Укажите хотя бы одну услугу' },
+).refine(
+  (data) => !(data.serviceId && data.services),
+  { message: 'Укажите serviceId или services, но не оба сразу' },
+);
 
 export const cancelAppointmentSchema = z.object({
   appointmentId: z.string().uuid(),
@@ -30,15 +37,23 @@ export const markNoShowSchema = z.object({
 export const slotQuerySchema = z.object({
   barberId: z.string().uuid().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Формат даты: YYYY-MM-DD'),
-  serviceId: z.string().uuid(),
-});
+  serviceId: z.string().uuid().optional(),
+  serviceIds: z.array(z.string().uuid()).min(1).optional(),
+}).refine(
+  (data) => data.serviceId || (data.serviceIds && data.serviceIds.length > 0),
+  { message: 'Укажите хотя бы одну услугу' },
+);
 
 export const dateSlotsQuerySchema = z.object({
   barberId: z.string().uuid().optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  serviceId: z.string().uuid(),
-});
+  serviceId: z.string().uuid().optional(),
+  serviceIds: z.array(z.string().uuid()).min(1).optional(),
+}).refine(
+  (data) => data.serviceId || (data.serviceIds && data.serviceIds.length > 0),
+  { message: 'Укажите хотя бы одну услугу' },
+);
 
 export const appointmentIdSchema = z.object({
   id: z.string().uuid(),

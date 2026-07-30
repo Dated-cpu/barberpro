@@ -2,6 +2,12 @@ import type { TxClient } from '../db/helpers';
 import type { AppointmentStatus } from '@prisma/client';
 import type { Decimal } from '@prisma/client/runtime/library';
 
+export interface AppointmentServiceData {
+  serviceId: string;
+  priceAtBooking: Decimal;
+  durationAtBooking: number;
+}
+
 export interface CreateAppointmentData {
   clientId: string;
   barberId: string;
@@ -13,7 +19,23 @@ export interface CreateAppointmentData {
   durationAtBooking: number;
   source: string;
   clientNotes?: string | null;
+  appointmentServices: AppointmentServiceData[];
 }
+
+const serviceSelect = {
+  id: true,
+  name: true,
+  duration: true,
+  price: true,
+} as const;
+
+const appointmentServicesSelect = {
+  id: true,
+  serviceId: true,
+  priceAtBooking: true,
+  durationAtBooking: true,
+  service: { select: serviceSelect },
+} as const;
 
 const defaultSelect = {
   id: true,
@@ -75,7 +97,8 @@ export const appointmentRepository = {
         ...defaultSelect,
         client: { select: { id: true, firstName: true, lastName: true, phone: true } },
         barber: { select: { id: true, firstName: true, lastName: true } },
-        service: { select: { id: true, name: true, duration: true, price: true } },
+        service: { select: serviceSelect },
+        appointmentServices: { select: appointmentServicesSelect },
       },
     });
   },
@@ -93,8 +116,14 @@ export const appointmentRepository = {
         durationAtBooking: data.durationAtBooking,
         source: data.source as 'WEBSITE' | 'INSTAGRAM' | 'TELEGRAM' | 'PHONE' | 'IN_PERSON' | 'WHATSAPP' | 'VK' | 'ADMIN',
         clientNotes: data.clientNotes ?? null,
+        appointmentServices: {
+          createMany: { data: data.appointmentServices },
+        },
       },
-      select: defaultSelect,
+      select: {
+        ...defaultSelect,
+        appointmentServices: { select: appointmentServicesSelect },
+      },
     });
   },
 
@@ -136,6 +165,7 @@ export const appointmentRepository = {
         ...defaultSelect,
         service: { select: { name: true, duration: true } },
         barber: { select: { id: true, firstName: true, lastName: true } },
+        appointmentServices: { select: appointmentServicesSelect },
       },
       take: opts?.limit ?? 20,
       ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
@@ -156,6 +186,7 @@ export const appointmentRepository = {
         service: { select: { id: true, name: true, duration: true, price: true } },
         barber: { select: { id: true, firstName: true, lastName: true } },
         branch: { select: { id: true, name: true, address: true } },
+        appointmentServices: { select: appointmentServicesSelect },
       },
       orderBy: { startTime: 'asc' },
     });
@@ -175,6 +206,7 @@ export const appointmentRepository = {
         ...defaultSelect,
         service: { select: { id: true, name: true, duration: true } },
         barber: { select: { id: true, firstName: true, lastName: true } },
+        appointmentServices: { select: appointmentServicesSelect },
       },
       take: opts?.limit ?? 20,
       ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),

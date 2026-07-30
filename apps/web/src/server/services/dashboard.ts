@@ -17,6 +17,7 @@ export const dashboardService = {
       include: {
         client: { select: { id: true, firstName: true, lastName: true, phone: true } },
         service: { select: { name: true, price: true, duration: true } },
+        appointmentServices: { include: { service: { select: { name: true, duration: true, price: true } } } },
       },
       orderBy: { startTime: 'asc' },
     });
@@ -139,6 +140,7 @@ export const dashboardService = {
       include: {
         client: { select: { id: true, firstName: true, lastName: true, phone: true } },
         service: { select: { name: true, duration: true, price: true } },
+        appointmentServices: { include: { service: { select: { name: true, duration: true, price: true } } } },
       },
       orderBy: { startTime: 'asc' },
     });

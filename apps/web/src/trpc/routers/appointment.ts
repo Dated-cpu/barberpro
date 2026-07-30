@@ -33,13 +33,17 @@ export const appointmentRouter = router({
 
   createManual: barberProcedure
     .input(z.object({
-      serviceId: z.string().uuid(),
+      serviceId: z.string().uuid().optional(),
+      services: z.array(z.string().uuid()).min(1).optional(),
       branchId: z.string().uuid().nullable().optional(),
       startTime: z.string().datetime({ offset: true }),
       clientNotes: z.string().max(500).optional().nullable(),
       clientName: z.string().min(2).max(100),
       clientPhone: z.string().min(5).max(20),
-    }))
+    }).refine(
+      (data) => data.serviceId || (data.services && data.services.length > 0),
+      { message: 'Укажите хотя бы одну услугу' },
+    ))
     .mutation(async ({ ctx, input }) => {
       const appointment = await appointmentService.create({ ...input, barberId: ctx.user!.id, clientId: ctx.user!.id });
       return appointment;
@@ -119,5 +123,11 @@ export const appointmentRouter = router({
     .query(async ({ ctx, input }) => {
       const appointments = await appointmentService.getMyHistory(ctx.user!.id, input);
       return appointments;
+    }),
+
+  myStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const stats = await appointmentService.getMyStats(ctx.user!.id);
+      return stats;
     }),
 });

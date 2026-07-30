@@ -29,12 +29,17 @@ async function resolveBarberId(tx: TxClient, barberId?: string | null): Promise<
 }
 
 export const availabilityService = {
-  async getAvailableSlots(barberId: string | undefined, dateStr: string, serviceId: string): Promise<AvailableSlot[]> {
+  async getAvailableSlots(barberId: string | undefined, dateStr: string, serviceIds: string[]): Promise<AvailableSlot[]> {
     return transaction(async (tx) => {
       const resolvedBarberId = await resolveBarberId(tx, barberId);
 
-      const service = await serviceRepository.findById(tx, serviceId);
-      if (!service) throw new NotFoundError('Service');
+      const services = await Promise.all(
+        serviceIds.map((sid) => serviceRepository.findById(tx, sid)),
+      );
+      const validServices = services.filter(Boolean);
+      if (validServices.length !== serviceIds.length) {
+        throw new NotFoundError('Service');
+      }
 
       const barber = await tx.user.findUnique({
         where: { id: resolvedBarberId, deletedAt: null, role: 'BARBER', isActive: true },
@@ -65,15 +70,15 @@ export const availabilityService = {
       const blockedSlots = await blockedSlotRepository.findByBarberAndTimeRange(tx, resolvedBarberId, dayStart, dayEnd);
 
       const slots: AvailableSlot[] = [];
-      const duration = service.duration;
+      const totalDuration = validServices.reduce((sum, s) => sum + s!.duration, 0);
 
       let currentMinutes = timeToMinutes(workingDay.startTime);
       const endMinutes = timeToMinutes(workingDay.endTime);
       const breakStartMinutes = workingDay.breakStart ? timeToMinutes(workingDay.breakStart) : null;
       const breakEndMinutes = workingDay.breakEnd ? timeToMinutes(workingDay.breakEnd) : null;
 
-      while (currentMinutes + duration <= endMinutes) {
-        const slotEndMinutes = currentMinutes + duration;
+      while (currentMinutes + totalDuration <= endMinutes) {
+        const slotEndMinutes = currentMinutes + totalDuration;
 
         if (breakStartMinutes !== null && breakEndMinutes !== null) {
           if (doSlotsOverlap(currentMinutes, slotEndMinutes, breakStartMinutes, breakEndMinutes)) {
@@ -112,7 +117,7 @@ export const availabilityService = {
 
         if (!isOccupied) {
           const slotStartStr = addMinutesToTime(workingDay.startTime, currentMinutes - timeToMinutes(workingDay.startTime));
-          const slotEndStr = addMinutesToTime(slotStartStr, duration);
+          const slotEndStr = addMinutesToTime(slotStartStr, totalDuration);
 
           const startDate = parseTimeInTimezone(dateStr, slotStartStr, timezone);
           const endDate = parseTimeInTimezone(dateStr, slotEndStr, timezone);

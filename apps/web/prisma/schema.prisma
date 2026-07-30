@@ -10,8 +10,8 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================
@@ -94,75 +94,71 @@ enum MediaProvider {
 /// Пользователь системы.
 /// Роли: GUEST (без регистрации), CLIENT, BARBER, ADMIN, SUPER_ADMIN.
 model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  email         String?   @unique
-  phone         String?   @unique
-  passwordHash  String?
-  firstName     String
-  lastName      String
-  role          UserRole  @default(CLIENT)
-  roleChangedAt DateTime? @db.Timestamptz // когда была последняя смена роли
-  roleChangedBy String?   @db.Uuid        // кто сменил роль (actorId)
-  isActive      Boolean   @default(true)
-  emailVerified           Boolean   @default(false)
-  phoneVerified           Boolean   @default(false)
-  verificationToken       String?   // хеш токена подтверждения email
+  id                         String    @id @default(uuid()) @db.Uuid
+  email                      String?   @unique
+  phone                      String?   @unique
+  passwordHash               String?
+  firstName                  String
+  lastName                   String
+  role                       UserRole  @default(CLIENT)
+  roleChangedAt              DateTime? @db.Timestamptz // когда была последняя смена роли
+  roleChangedBy              String?   @db.Uuid // кто сменил роль (actorId)
+  isActive                   Boolean   @default(true)
+  emailVerified              Boolean   @default(false)
+  phoneVerified              Boolean   @default(false)
+  verificationToken          String? // хеш токена подтверждения email
   verificationTokenExpiresAt DateTime? @db.Timestamptz
-  resetPasswordToken      String?   // хеш токена сброса пароля
-  resetPasswordExpiresAt  DateTime? @db.Timestamptz
-  lastLogin               DateTime? @db.Timestamptz
-  avatarId      String?   @db.Uuid
-  description   String?
-  createdAt     DateTime  @default(now()) @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @db.Timestamptz
-  deletedAt     DateTime? @db.Timestamptz
+  resetPasswordToken         String? // хеш токена сброса пароля
+  resetPasswordExpiresAt     DateTime? @db.Timestamptz
+  lastLogin                  DateTime? @db.Timestamptz
+  avatarId                   String?   @db.Uuid
+  description                String?
+  createdAt                  DateTime  @default(now()) @db.Timestamptz
+  updatedAt                  DateTime  @updatedAt @db.Timestamptz
+  deletedAt                  DateTime? @db.Timestamptz
 
   // Relations
-  avatar             Media?             @relation("UserAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+  avatar             Media?         @relation("UserAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
   refreshTokens      RefreshToken[]
   sessions           Session[]
-  clientAppointments Appointment[]     @relation("ClientAppointments")
-  barberAppointments Appointment[]     @relation("BarberAppointments")
+  clientAppointments Appointment[]  @relation("ClientAppointments")
+  barberAppointments Appointment[]  @relation("BarberAppointments")
   workingDays        WorkingDay[]
   blockedSlots       BlockedSlot[]
   portfolios         Portfolio[]
   reviews            Review[]
-  moderatedReviews   Review[]         @relation("ModeratedReviews")
+  moderatedReviews   Review[]       @relation("ModeratedReviews")
   notifications      Notification[]
   auditLogs          AuditLog[]
-  uploadedMedia      Media[]           @relation("UploadedBy")
+  uploadedMedia      Media[]        @relation("UploadedBy")
   consents           UserConsent[]
   settings           Setting[]
   branchAssignments  UserBranch[]
+  // Поиск активных пользователей по роли — быстрый список барберов/админов на публичной странице.
+  // Очистка просроченных токенов сброса пароля.
+  // Очистка просроченных токенов подтверждения email.
+  // Исключение мягко удалённых записей из всех запросов.
 
   // Индексы
   @@index([role, isActive])
-  // Поиск активных пользователей по роли — быстрый список барберов/админов на публичной странице.
-
   @@index([resetPasswordExpiresAt])
-  // Очистка просроченных токенов сброса пароля.
-
   @@index([verificationTokenExpiresAt])
-  // Очистка просроченных токенов подтверждения email.
-
   @@index([deletedAt])
-  // Исключение мягко удалённых записей из всех запросов.
-
   @@map("users")
 }
 
 /// Филиал. Подготовка к multi-tenant архитектуре с несколькими точками.
 model Branch {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
   name      String
-  slug      String   @unique
+  slug      String    @unique
   address   String?
   phone     String?
   email     String?
-  timezone  String   @default("Europe/Moscow")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
+  timezone  String    @default("Europe/Moscow")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
   deletedAt DateTime? @db.Timestamptz
 
   services     Service[]
@@ -190,10 +186,9 @@ model UserBranch {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, branchId])
   // Одна связь пользователя с филиалом.
 
+  @@unique([userId, branchId])
   @@index([branchId])
   // Поиск всех сотрудников филиала.
   @@map("user_branches")
@@ -206,16 +201,16 @@ model Media {
   id           String        @id @default(uuid()) @db.Uuid
   filename     String
   mimeType     String
-  size         Int           // байты
+  size         Int // байты
   width        Int?
   height       Int?
   alt          String?
   provider     MediaProvider @default(LOCAL)
   bucket       String?
-  key          String        // путь в хранилище
+  key          String // путь в хранилище
   url          String
   thumbnailUrl String?
-  hash         String?       // SHA-256 для дедупликации и целостности
+  hash         String? // SHA-256 для дедупликации и целостности
   uploadedById String?       @db.Uuid
   createdAt    DateTime      @default(now()) @db.Timestamptz
   updatedAt    DateTime      @updatedAt @db.Timestamptz
@@ -227,14 +222,12 @@ model Media {
   portfolioImages PortfolioImage[]
   galleryItems    Gallery[]
   reviewImages    ReviewImage[]
-
-  @@index([provider, key])
   // Быстрый поиск по провайдеру и ключу.
-
-  @@index([uploadedById])
-  @@index([hash])
   // Дедупликация — проверка существования файла по хешу.
 
+  @@index([provider, key])
+  @@index([uploadedById])
+  @@index([hash])
   @@index([deletedAt])
   @@map("media")
 }
@@ -249,51 +242,45 @@ model RefreshToken {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
   tokenHash String
-  family    String    // идентификатор семейства токенов (для ротации)
+  family    String // идентификатор семейства токенов (для ротации)
   expiresAt DateTime  @db.Timestamptz
   revokedAt DateTime? @db.Timestamptz
   createdAt DateTime  @default(now()) @db.Timestamptz
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   session Session?
-
-  @@unique([tokenHash])
   // Быстрый поиск по хешу при валидации refresh token.
-
-  @@index([userId])
   // Поиск всех токенов пользователя для массовой инвалидации.
-
-  @@index([family])
   // Поиск по семейству для детекции кражи (reuse detection).
-
-  @@index([expiresAt])
   // Очистка просроченных токенов (cron job).
 
+  @@unique([tokenHash])
+  @@index([userId])
+  @@index([family])
+  @@index([expiresAt])
   @@map("refresh_tokens")
 }
 
 /// Сессия пользователя (устройство).
 /// Позволяет отслеживать активные сессии и управлять ими.
 model Session {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @db.Uuid
-  device       String?  // название устройства
-  ip           String?
-  userAgent    String?
-  refreshTokenId String? @unique @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  device         String? // название устройства
+  ip             String?
+  userAgent      String?
+  refreshTokenId String?  @unique @db.Uuid
   expiresAt      DateTime @db.Timestamptz
   lastActiveAt   DateTime @default(now()) @db.Timestamptz
   createdAt      DateTime @default(now()) @db.Timestamptz
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshToken RefreshToken? @relation(fields: [refreshTokenId], references: [id], onDelete: SetNull)
-
-  @@index([userId, lastActiveAt])
   // Активные сессии пользователя, сортировка по активности.
-
-  @@index([expiresAt])
   // Очистка просроченных сессий.
 
+  @@index([userId, lastActiveAt])
+  @@index([expiresAt])
   @@map("sessions")
 }
 
@@ -304,33 +291,31 @@ model Session {
 /// Услуга барбера.
 /// Цена и длительность фиксируются на момент создания записи (см. Appointment.priceAtBooking).
 model Service {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
   name        String
   description String?
-  price       Decimal  @db.Decimal(10, 2)
-  duration    Int      // минуты
-  category    String?  // "haircut", "beard", "styling", "coloring", "shave"
-  imageId     String?  @db.Uuid
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  branchId    String?  @db.Uuid
-  createdAt   DateTime @default(now()) @db.Timestamptz
-  updatedAt   DateTime @updatedAt @db.Timestamptz
+  price       Decimal   @db.Decimal(10, 2)
+  duration    Int // минуты
+  category    String? // "haircut", "beard", "styling", "coloring", "shave"
+  imageId     String?   @db.Uuid
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  branchId    String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
   deletedAt   DateTime? @db.Timestamptz
 
-  image       Media?         @relation("ServiceImage", fields: [imageId], references: [id], onDelete: SetNull)
-  branch      Branch?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  appointments Appointment[]
-
-  @@index([isActive, sortOrder])
+  image               Media?               @relation("ServiceImage", fields: [imageId], references: [id], onDelete: SetNull)
+  branch              Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  appointments        Appointment[]
+  appointmentServices AppointmentService[]
   // Сортировка активных услуг для публичной страницы.
-
-  @@index([category, isActive])
   // Фильтр услуг по категории.
-
-  @@index([branchId, isActive])
   // Услуги филиала.
 
+  @@index([isActive, sortOrder])
+  @@index([category, isActive])
+  @@index([branchId, isActive])
   @@index([deletedAt])
   @@map("services")
 }
@@ -340,61 +325,55 @@ model Service {
 ///   — Шаблон: date = null, dayOfWeek = 1..7 (еженедельное расписание)
 ///   — Переопределение: date = конкретная дата, dayOfWeek = null (выходной/особый день)
 model WorkingDay {
-  id         String   @id @default(uuid()) @db.Uuid
-  barberId   String   @db.Uuid
-  date       DateTime? @db.Date   // null = шаблон
-  dayOfWeek  Int?                // 1 (Mon) .. 7 (Sun), null = переопределение
-  startTime  String              // "HH:mm"
-  endTime    String              // "HH:mm"
-  breakStart String?             // "HH:mm" — начало обеда
-  breakEnd   String?             // "HH:mm" — конец обеда
-  isDayOff   Boolean  @default(false)
-  branchId   String?  @db.Uuid
-  createdAt  DateTime @default(now()) @db.Timestamptz
-  updatedAt  DateTime @updatedAt @db.Timestamptz
+  id         String    @id @default(uuid()) @db.Uuid
+  barberId   String    @db.Uuid
+  date       DateTime? @db.Date // null = шаблон
+  dayOfWeek  Int? // 1 (Mon) .. 7 (Sun), null = переопределение
+  startTime  String // "HH:mm"
+  endTime    String // "HH:mm"
+  breakStart String? // "HH:mm" — начало обеда
+  breakEnd   String? // "HH:mm" — конец обеда
+  isDayOff   Boolean   @default(false)
+  branchId   String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @db.Timestamptz
 
-  barber User   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  barber User    @relation(fields: [barberId], references: [id], onDelete: Cascade)
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
-
-  @@unique([barberId, date])
   // Одно переопределение на барбера на дату.
-
-  @@unique([barberId, dayOfWeek])
   // Один шаблон на день недели на барбера.
   // PostgreSQL: NULL в unique считается уникальным,
   // поэтому dayOfWeek = null (переопределения) не конфликтуют.
-
-  @@index([barberId, isDayOff])
   // Поиск выходных барбера.
-
-  @@index([barberId, date, isDayOff])
   // Проверка, работает ли барбер в конкретную дату.
 
+  @@unique([barberId, date])
+  @@unique([barberId, dayOfWeek])
+  @@index([barberId, isDayOff])
+  @@index([barberId, date, isDayOff])
   @@map("working_days")
 }
 
 /// Блокировка слота (отпуск, болезнь, личные дела).
 /// Переопределяет WorkingDay для конкретного временного диапазона.
 model BlockedSlot {
-  id        String   @id @default(uuid()) @db.Uuid
-  barberId  String   @db.Uuid
-  startTime DateTime @db.Timestamptz
-  endTime   DateTime @db.Timestamptz
+  id        String    @id @default(uuid()) @db.Uuid
+  barberId  String    @db.Uuid
+  startTime DateTime  @db.Timestamptz
+  endTime   DateTime  @db.Timestamptz
   reason    String?
-  branchId  String?  @db.Uuid
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
+  branchId  String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
   deletedAt DateTime? @db.Timestamptz
 
-  barber User   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  barber User    @relation(fields: [barberId], references: [id], onDelete: Cascade)
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
-
-  @@index([barberId, startTime, endTime])
   // Поиск пересекающихся блокировок для конкретного барбера.
-
-  @@index([startTime, endTime])
   // Глобальный поиск блокировок во временном диапазоне.
 
+  @@index([barberId, startTime, endTime])
+  @@index([startTime, endTime])
   @@index([deletedAt])
   @@map("blocked_slots")
 }
@@ -403,61 +382,74 @@ model BlockedSlot {
 /// Цена и длительность фиксируются на момент записи (snapshot).
 /// Статус отражает жизненный цикл: PENDING → CONFIRMED → IN_PROGRESS → COMPLETED
 model Appointment {
-  id               String            @id @default(uuid()) @db.Uuid
-  clientId         String            @db.Uuid
-  barberId         String            @db.Uuid
-  serviceId        String            @db.Uuid
-  branchId         String?           @db.Uuid
-  startTime        DateTime          @db.Timestamptz
-  endTime          DateTime          @db.Timestamptz
-  status           AppointmentStatus @default(PENDING)
-  source           BookingSource     @default(WEBSITE)
-  notes            String?   // заметки барбера (внутренние)
-  clientNotes      String?   // комментарий клиента при записи
-  priceAtBooking   Decimal   @db.Decimal(10, 2) // цена на момент записи
-  durationAtBooking Int                // длительность на момент записи (мин)
-  paymentStatus    PaymentStatus      @default(PENDING)
-  paymentId        String?            // ID платежа в платёжной системе (будущее)
-  cancelledAt      DateTime?          @db.Timestamptz
-  cancelReason     String?
-  cancelledBy      String?            // "client", "barber", "admin", "system"
-  createdAt        DateTime           @default(now()) @db.Timestamptz
-  updatedAt        DateTime           @updatedAt @db.Timestamptz
-  deletedAt        DateTime?          @db.Timestamptz
+  id                String            @id @default(uuid()) @db.Uuid
+  clientId          String            @db.Uuid
+  barberId          String            @db.Uuid
+  serviceId         String            @db.Uuid
+  branchId          String?           @db.Uuid
+  startTime         DateTime          @db.Timestamptz
+  endTime           DateTime          @db.Timestamptz
+  status            AppointmentStatus @default(PENDING)
+  source            BookingSource     @default(WEBSITE)
+  notes             String? // заметки барбера (внутренние)
+  clientNotes       String? // комментарий клиента при записи
+  priceAtBooking    Decimal           @db.Decimal(10, 2) // цена на момент записи
+  durationAtBooking Int // длительность на момент записи (мин)
+  paymentStatus     PaymentStatus     @default(PENDING)
+  paymentId         String? // ID платежа в платёжной системе (будущее)
+  cancelledAt       DateTime?         @db.Timestamptz
+  cancelReason      String?
+  cancelledBy       String? // "client", "barber", "admin", "system"
+  createdAt         DateTime          @default(now()) @db.Timestamptz
+  updatedAt         DateTime          @updatedAt @db.Timestamptz
+  deletedAt         DateTime?         @db.Timestamptz
 
   client  User    @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Restrict)
   barber  User    @relation("BarberAppointments", fields: [barberId], references: [id], onDelete: Restrict)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   branch  Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
-  notifications Notification[] @relation("AppointmentNotifications")
-  review       Review?
-
-  @@index([barberId, startTime, endTime])
+  notifications       Notification[]       @relation("AppointmentNotifications")
+  review              Review?
+  appointmentServices AppointmentService[]
   // Поиск пересекающихся записей барбера — проверка доступности слота.
   // Самый частый запрос: "свободен ли барбер в это время?"
-
-  @@index([barberId, status, startTime])
   // Расписание барбера на день с фильтром по статусу.
   // Используется на странице админки "сегодняшние записи".
-
-  @@index([clientId, startTime])
   // История записей клиента (личный кабинет).
-
-  @@index([status, startTime])
   // Поиск предстоящих записей по статусу (для напоминаний).
-
-  @@index([branchId, startTime])
   // Расписание филиала.
-
-  @@index([source])
   // Аналитика: какие каналы привлекают больше записей.
-
-  @@index([createdAt])
   // Аналитика: новые записи за период.
 
+  @@index([barberId, startTime, endTime])
+  @@index([barberId, status, startTime])
+  @@index([clientId, startTime])
+  @@index([status, startTime])
+  @@index([branchId, startTime])
+  @@index([source])
+  @@index([createdAt])
   @@index([deletedAt])
   @@map("appointments")
+}
+
+/// Связь записи с услугой (many-to-many).
+/// Позволяет выбрать несколько услуг в одной записи.
+/// Цена и длительность фиксируются на момент записи (snapshot).
+model AppointmentService {
+  id                String   @id @default(uuid()) @db.Uuid
+  appointmentId     String   @db.Uuid
+  serviceId         String   @db.Uuid
+  priceAtBooking    Decimal  @db.Decimal(10, 2)
+  durationAtBooking Int
+  createdAt         DateTime @default(now()) @db.Timestamptz
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@index([appointmentId])
+  @@index([serviceId])
+  @@map("appointment_services")
 }
 
 // ============================================================
@@ -466,47 +458,44 @@ model Appointment {
 
 /// Публичная галерея работ (главная страница, портфолио барбершопа).
 model Gallery {
-  id        String   @id @default(uuid()) @db.Uuid
-  mediaId   String   @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
+  mediaId   String    @db.Uuid
   caption   String?
-  category  String?           // "haircut", "beard", "styling", "shave", "process"
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
-  branchId  String?  @db.Uuid
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
+  category  String? // "haircut", "beard", "styling", "shave", "process"
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  branchId  String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
   deletedAt DateTime? @db.Timestamptz
 
   media  Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
-
-  @@index([isActive, sortOrder])
   // Активные элементы галереи в правильном порядке.
-
-  @@index([category, isActive])
   // Фильтр по категории.
 
+  @@index([isActive, sortOrder])
+  @@index([category, isActive])
   @@index([deletedAt])
   @@map("gallery")
 }
 
 /// Портфолио барбера (набор работ).
 model Portfolio {
-  id          String   @id @default(uuid()) @db.Uuid
-  barberId    String   @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
+  barberId    String    @db.Uuid
   title       String
   description String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now()) @db.Timestamptz
-  updatedAt   DateTime @updatedAt @db.Timestamptz
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
   deletedAt   DateTime? @db.Timestamptz
 
-  barber User            @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  barber User             @relation(fields: [barberId], references: [id], onDelete: Cascade)
   images PortfolioImage[]
-
-  @@index([barberId, sortOrder])
   // Портфолио барбера в правильном порядке.
 
+  @@index([barberId, sortOrder])
   @@index([deletedAt])
   @@map("portfolios")
 }
@@ -521,10 +510,9 @@ model PortfolioImage {
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   media     Media     @relation(fields: [mediaId], references: [id], onDelete: Restrict)
-
-  @@index([portfolioId, sortOrder])
   // Изображения портфолио в правильном порядке.
 
+  @@index([portfolioId, sortOrder])
   @@index([mediaId])
   @@map("portfolio_images")
 }
@@ -535,7 +523,7 @@ model Review {
   id            String       @id @default(uuid()) @db.Uuid
   clientId      String       @db.Uuid
   appointmentId String       @unique @db.Uuid
-  rating        Int          // 1–5
+  rating        Int // 1–5
   text          String?
   status        ReviewStatus @default(PENDING)
   moderatedAt   DateTime?    @db.Timestamptz
@@ -544,21 +532,18 @@ model Review {
   updatedAt     DateTime     @updatedAt @db.Timestamptz
   deletedAt     DateTime?    @db.Timestamptz
 
-  client      User         @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  moderator   User?        @relation("ModeratedReviews", fields: [moderatedById], references: [id], onDelete: SetNull)
-  appointment Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  client      User          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  moderator   User?         @relation("ModeratedReviews", fields: [moderatedById], references: [id], onDelete: SetNull)
+  appointment Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   images      ReviewImage[]
-
-  @@index([status, rating])
   // Публичные отзывы, отсортированные по рейтингу.
-
-  @@index([clientId])
   // История отзывов клиента.
-
-  @@index([appointmentId])
-  @@index([createdAt])
   // Свежие отзывы на главной.
 
+  @@index([status, rating])
+  @@index([clientId])
+  @@index([appointmentId])
+  @@index([createdAt])
   @@index([deletedAt])
   @@map("reviews")
 }
@@ -587,38 +572,34 @@ model ReviewImage {
 /// Уведомление пользователя.
 /// Поддерживает: in-app, email, sms, push, telegram.
 model Notification {
-  id           String           @id @default(uuid()) @db.Uuid
-  userId       String           @db.Uuid
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @db.Uuid
   appointmentId String?          @db.Uuid
-  type         NotificationType
-  title        String
-  body         String?
-  data         Json?            @db.JsonB // гибкий payload: { appointmentId, reviewId, ... }
-  channel      String?          // "in_app", "email", "sms", "push", "telegram"
-  externalId   String?          // ID во внешней системе (Telegram message ID, SendGrid ID)
-  isRead       Boolean          @default(false)
-  readAt       DateTime?        @db.Timestamptz
-  sentAt       DateTime?        @db.Timestamptz
-  deliveredAt  DateTime?        @db.Timestamptz
-  failedAt     DateTime?        @db.Timestamptz
-  errorMessage String?
-  createdAt    DateTime         @default(now()) @db.Timestamptz
+  type          NotificationType
+  title         String
+  body          String?
+  data          Json?            @db.JsonB // гибкий payload: { appointmentId, reviewId, ... }
+  channel       String? // "in_app", "email", "sms", "push", "telegram"
+  externalId    String? // ID во внешней системе (Telegram message ID, SendGrid ID)
+  isRead        Boolean          @default(false)
+  readAt        DateTime?        @db.Timestamptz
+  sentAt        DateTime?        @db.Timestamptz
+  deliveredAt   DateTime?        @db.Timestamptz
+  failedAt      DateTime?        @db.Timestamptz
+  errorMessage  String?
+  createdAt     DateTime         @default(now()) @db.Timestamptz
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointment Appointment? @relation("AppointmentNotifications", fields: [appointmentId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
   // Лента уведомлений пользователя.
-
-  @@index([userId, isRead])
   // Непрочитанные уведомления (счётчик в UI).
-
-  @@index([type, createdAt])
   // Статистика уведомлений по типу.
-
-  @@index([createdAt])
   // Очистка старых уведомлений.
 
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+  @@index([type, createdAt])
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -626,10 +607,10 @@ model Notification {
 /// Каждое действие администратора или критическое событие фиксируется здесь.
 model AuditLog {
   id         String   @id @default(uuid()) @db.Uuid
-  actorId    String?  @db.Uuid   // null = системное действие
-  action     String              // "appointment.create", "service.update", "user.login", ...
-  entityType String             // "Appointment", "Service", "User", "Setting", ...
-  entityId   String?   @db.Uuid // UUID изменённой сущности
+  actorId    String?  @db.Uuid // null = системное действие
+  action     String // "appointment.create", "service.update", "user.login", ...
+  entityType String // "Appointment", "Service", "User", "Setting", ...
+  entityId   String?  @db.Uuid // UUID изменённой сущности
   oldValue   Json?    @db.JsonB // snapshot "до"
   newValue   Json?    @db.JsonB // snapshot "после"
   ip         String?
@@ -638,19 +619,15 @@ model AuditLog {
   createdAt  DateTime @default(now()) @db.Timestamptz
 
   actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([actorId, createdAt])
   // История действий пользователя.
-
-  @@index([action, createdAt])
   // Сколько раз произошло конкретное действие.
-
-  @@index([entityType, entityId])
   // История изменений конкретной сущности.
-
-  @@index([createdAt])
   // Выборка за период.
 
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 
@@ -660,8 +637,8 @@ model AuditLog {
 /// Гарантирует at-least-once delivery без distributed transactions.
 model Event {
   id            String      @id @default(uuid()) @db.Uuid
-  eventType     String      // "appointment.created", "appointment.cancelled", "user.registered"
-  aggregateType String      // "Appointment", "User", "Review"
+  eventType     String // "appointment.created", "appointment.cancelled", "user.registered"
+  aggregateType String // "Appointment", "User", "Review"
   aggregateId   String      @db.Uuid
   payload       Json        @default("{}") @db.JsonB
   status        EventStatus @default(PENDING)
@@ -670,16 +647,13 @@ model Event {
   lastError     String?
   createdAt     DateTime    @default(now()) @db.Timestamptz
   updatedAt     DateTime    @updatedAt @db.Timestamptz
-
-  @@index([status, createdAt])
   // Очередь событий, ожидающих обработки.
-
-  @@index([eventType, createdAt])
   // Поиск событий по типу.
-
-  @@index([aggregateType, aggregateId])
   // Все события, связанные с сущностью.
 
+  @@index([status, createdAt])
+  @@index([eventType, createdAt])
+  @@index([aggregateType, aggregateId])
   @@map("events")
 }
 
@@ -688,23 +662,20 @@ model Event {
 model UserConsent {
   id              String   @id @default(uuid()) @db.Uuid
   userId          String?  @db.Uuid
-  consentType     String   // "privacy" | "terms" | "personal_data" | "booking_rules" | "cookies"
+  consentType     String // "privacy" | "terms" | "personal_data" | "booking_rules" | "cookies"
   documentVersion Int
   ip              String?
   userAgent       String?
   acceptedAt      DateTime @default(now()) @db.Timestamptz
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId, consentType])
   // История согласий пользователя по типу документа.
-
-  @@index([consentType, acceptedAt])
   // Статистика принятий по типу документа.
-
-  @@index([acceptedAt])
   // Очистка по дате.
 
+  @@index([userId, consentType])
+  @@index([consentType, acceptedAt])
+  @@index([acceptedAt])
   @@map("user_consents")
 }
 
@@ -717,20 +688,18 @@ model Setting {
   value       Json     @db.JsonB
   type        String   @default("string") // "string", "number", "boolean", "json"
   description String?
-  scopeId     String   // "system" или UUID барбера
+  scopeId     String // "system" или UUID барбера
   barberId    String?  @db.Uuid // FK для referential integrity
   createdAt   DateTime @default(now()) @db.Timestamptz
   updatedAt   DateTime @updatedAt @db.Timestamptz
 
   barber User? @relation(fields: [barberId], references: [id], onDelete: Cascade)
-
-  @@unique([scopeId, key])
   // Уникальность ключа в рамках scope.
   // scopeId всегда NOT NULL, поэтому unique работает корректно.
-
-  @@index([scopeId])
   // Все настройки одного scope (система или барбер).
 
+  @@unique([scopeId, key])
+  @@index([scopeId])
   @@index([barberId])
   @@map("settings")
 }

@@ -12,10 +12,9 @@ import { assertAppointmentAccess, assertBarberOrAdmin } from '../auth/authorizat
 import { auditService } from './audit';
 import { AuditEvent } from '@/server/security/audit/events';
 import type { AuthUser } from '../auth/authorization';
-
 import type { TxClient } from '../db/helpers';
-
 import type { CreateAppointmentInput } from '@/validators/booking';
+import { Decimal } from '@prisma/client/runtime/library';
 
 async function resolveBarberId(tx: TxClient, barberId?: string | null): Promise<string> {
   if (barberId) return barberId;
@@ -66,13 +65,25 @@ async function resolveGuestClientId(
   return guest.id;
 }
 
+function extractServiceIds(input: CreateAppointmentInput): string[] {
+  if (input.services && input.services.length > 0) return input.services;
+  if (input.serviceId) return [input.serviceId];
+  throw new TRPCError({ code: 'BAD_REQUEST', message: 'Укажите хотя бы одну услугу' });
+}
+
 export const appointmentService = {
   async create(input: CreateAppointmentInput & { clientId?: string }) {
     return prisma.$transaction(async (tx) => {
       const barberId = await resolveBarberId(tx, input.barberId);
+      const serviceIds = extractServiceIds(input);
 
-      const service = await serviceRepository.findById(tx, input.serviceId);
-      if (!service) throw new NotFoundError('Service');
+      const services = await Promise.all(
+        serviceIds.map((sid) => serviceRepository.findById(tx, sid)),
+      );
+      const validServices = services.filter(Boolean);
+      if (validServices.length !== serviceIds.length) {
+        throw new NotFoundError('Service');
+      }
 
       const barber = await tx.user.findUnique({
         where: { id: barberId, deletedAt: null, role: 'BARBER', isActive: true },
@@ -82,8 +93,14 @@ export const appointmentService = {
 
       const branch = barber.branchAssignments[0]?.branch;
 
+      const totalDuration = validServices.reduce((sum, s) => sum + s!.duration, 0);
+      const totalPrice = validServices.reduce(
+        (sum, s) => sum.add(s!.price),
+        new Decimal(0),
+      );
+
       const startTime = new Date(input.startTime);
-      const endTime = new Date(startTime.getTime() + service.duration * 60 * 1000);
+      const endTime = new Date(startTime.getTime() + totalDuration * 60 * 1000);
 
       const overlapCount = await appointmentRepository.findOverlappingCount(tx, barberId, startTime, endTime);
       if (overlapCount > 0) {
@@ -106,17 +123,24 @@ export const appointmentService = {
 
       const clientId = await resolveGuestClientId(tx, input.clientId, input.clientPhone, input.clientName, input.clientEmail);
 
+      const appointmentServicesData = validServices.map((s) => ({
+        serviceId: s!.id,
+        priceAtBooking: s!.price,
+        durationAtBooking: s!.duration,
+      }));
+
       const appointment = await appointmentRepository.create(tx, {
         clientId,
         barberId: barberId,
-        serviceId: input.serviceId,
+        serviceId: validServices[0]!.id,
         branchId: branch?.id ?? null,
         startTime,
         endTime,
-        priceAtBooking: service.price,
-        durationAtBooking: service.duration,
+        priceAtBooking: totalPrice,
+        durationAtBooking: totalDuration,
         source: 'WEBSITE',
         clientNotes: input.clientNotes ?? null,
+        appointmentServices: appointmentServicesData,
       });
 
       await dispatchEvent(tx, {
@@ -127,13 +151,13 @@ export const appointmentService = {
           appointmentId: appointment.id,
           clientId,
           barberId: barberId,
-          serviceId: input.serviceId,
+          serviceIds: validServices.map((s) => s!.id),
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
         },
       });
 
-      logger.info('Appointment created', { appointmentId: appointment.id, barberId: barberId, clientId });
+      logger.info('Appointment created', { appointmentId: appointment.id, barberId: barberId, clientId, serviceCount: validServices.length });
 
       return { ...appointment, clientId };
     }, { isolationLevel: 'Serializable' });
@@ -272,6 +296,65 @@ export const appointmentService = {
   async getMyHistory(clientId: string, opts?: { limit?: number; cursor?: string }) {
     return transaction(async (tx) => {
       return appointmentRepository.findHistoryByClient(tx, clientId, opts);
+    });
+  },
+
+  async getMyStats(clientId: string) {
+    return transaction(async (tx) => {
+      const allAppointments = await tx.appointment.findMany({
+        where: { clientId, deletedAt: null },
+        select: {
+          id: true,
+          startTime: true,
+          priceAtBooking: true,
+          status: true,
+          barberId: true,
+          barber: { select: { id: true, firstName: true, lastName: true } },
+          service: { select: { id: true, name: true } },
+          appointmentServices: {
+            select: {
+              serviceId: true,
+              service: { select: { id: true, name: true } },
+              priceAtBooking: true,
+            },
+          },
+        },
+        orderBy: { startTime: 'asc' },
+      });
+
+      const completed = allAppointments.filter((a) => a.status === 'COMPLETED');
+      const totalVisits = completed.length;
+      const totalSpent = completed.reduce((sum, a) => sum.add(a.priceAtBooking), new Decimal(0));
+      const firstVisitDate = allAppointments.length > 0 ? allAppointments[0]!.startTime : null;
+
+      const serviceCount: Record<string, { name: string; count: number }> = {};
+      for (const a of allAppointments) {
+        if (a.appointmentServices && a.appointmentServices.length > 0) {
+          for (const as of a.appointmentServices) {
+            if (!serviceCount[as.serviceId]) serviceCount[as.serviceId] = { name: as.service.name, count: 0 };
+            serviceCount[as.serviceId]!.count++;
+          }
+        } else {
+          if (!serviceCount[a.service.id]) serviceCount[a.service.id] = { name: a.service.name, count: 0 };
+          serviceCount[a.service.id]!.count++;
+        }
+      }
+      const favoriteService = Object.values(serviceCount).sort((a, b) => b.count - a.count)[0] ?? null;
+
+      const barberCount: Record<string, { name: string; count: number }> = {};
+      for (const a of allAppointments) {
+        if (!barberCount[a.barberId]) barberCount[a.barberId] = { name: `${a.barber.firstName} ${a.barber.lastName}`, count: 0 };
+        barberCount[a.barberId]!.count++;
+      }
+      const favoriteBarber = Object.values(barberCount).sort((a, b) => b.count - a.count)[0] ?? null;
+
+      return {
+        totalVisits,
+        totalSpent: Number(totalSpent),
+        firstVisitDate,
+        favoriteService,
+        favoriteBarber,
+      };
     });
   },
 

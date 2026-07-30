@@ -23,6 +23,14 @@ const statusColors: Record<string, string> = {
   NO_SHOW: 'text-error border-error/30 bg-error-bg',
 };
 
+export interface UpcomingAppointmentService {
+  id: string;
+  serviceId: string;
+  priceAtBooking: string;
+  durationAtBooking: number;
+  service: { id: string; name: string; duration: number; price: string };
+}
+
 export interface UpcomingAppointment {
   id: string;
   startTime: string;
@@ -31,6 +39,7 @@ export interface UpcomingAppointment {
   priceAtBooking: string;
   durationAtBooking: number;
   service: { id: string; name: string; duration: number; price: string };
+  appointmentServices?: UpcomingAppointmentService[];
   barber: { id: string; firstName: string; lastName: string };
   branch: { id: string; name: string; address: string | null } | null;
 }
@@ -77,7 +86,14 @@ export function UpcomingAppointmentCard({ appointment, onCancelled }: UpcomingAp
       </div>
 
       <div className="flex flex-col gap-2 text-sm font-body">
-        <p className="font-medium text-text-primary">{appointment.service.name}</p>
+        <div>
+          {(appointment.appointmentServices?.length ?? 0) > 1
+            ? appointment.appointmentServices!.map((as) => (
+                <p key={as.id} className="font-medium text-text-primary">{as.service.name}</p>
+              ))
+            : <p className="font-medium text-text-primary">{appointment.service.name}</p>
+          }
+        </div>
         <p className="text-text-secondary">
           {dateStr}, {timeStr} &mdash; {endTime}
         </p>

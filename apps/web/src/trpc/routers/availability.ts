@@ -7,7 +7,11 @@ export const availabilityRouter = router({
   getAvailableSlots: publicProcedure
     .input(slotQuerySchema)
     .query(async ({ input }) => {
-      const slots = await availabilityService.getAvailableSlots(input.barberId, input.date, input.serviceId);
+      const serviceIds = input.serviceIds ?? (input.serviceId ? [input.serviceId] : []);
+      if (serviceIds.length === 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Укажите хотя бы одну услугу' });
+      }
+      const slots = await availabilityService.getAvailableSlots(input.barberId, input.date, serviceIds);
       return slots;
     }),
 
