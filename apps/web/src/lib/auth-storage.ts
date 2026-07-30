@@ -1,9 +1,8 @@
-// TODO: Migrate to httpOnly cookies for production auth.
-// localStorage is vulnerable to XSS. The proper flow:
+// Tokens stored in localStorage for convenience.
+// For higher security, migrate to httpOnly cookies:
 // 1. Server sets httpOnly cookie on login (Set-Cookie header)
 // 2. Middleware reads cookie, attaches user to request
 // 3. No client-side token storage needed
-// Blocked by: need server-side cookie handling in tRPC context
 
 const ACCESS_TOKEN_KEY = 'bp_access_token';
 const REFRESH_TOKEN_KEY = 'bp_refresh_token';
@@ -27,5 +26,6 @@ export const authStorage = {
   clearTokens(): void {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.clear();
   },
 };

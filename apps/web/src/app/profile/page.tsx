@@ -207,16 +207,18 @@ function SecurityTab() {
       logoutMutation.mutate({ refreshToken });
     }
     authStorage.clearTokens();
+    sessionStorage.clear();
     document.cookie = 'bp_role=; path=/; max-age=0';
-    router.push('/auth/login');
+    router.push('/');
   };
 
   const handleLogoutAll = () => {
     logoutAllMutation.mutate(undefined, {
       onSuccess: () => {
         authStorage.clearTokens();
+        sessionStorage.clear();
         document.cookie = 'bp_role=; path=/; max-age=0';
-        router.push('/auth/login');
+        router.push('/');
       },
     });
   };

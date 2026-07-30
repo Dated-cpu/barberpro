@@ -35,7 +35,7 @@ export const mediaService = {
     if (!media) return;
 
     const storage = getStorageAdapter();
-    await storage.delete(media.key).catch(() => {});
+    await storage.delete(media.key);
 
     await prisma.media.update({
       where: { id: mediaId },

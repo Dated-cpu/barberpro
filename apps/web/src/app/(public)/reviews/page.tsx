@@ -1,5 +1,6 @@
 import { SectionTitle } from '@/components/shared/section-title';
 import { MobileBackButton } from '@/components/shared/mobile-back-button';
+import { SocialLinksFooter } from '@/components/shared/social-links-footer';
 import { EmptyState } from '@/components/shared/empty-state';
 
 const reviews = [
@@ -55,10 +56,9 @@ export default function ReviewsPage() {
 
         <div className="mt-10 sm:mt-12 rounded-xl border border-border bg-bg-elevated p-6 sm:p-8 text-center">
           <p className="mb-2 text-sm sm:text-base text-text-secondary font-body">Хотите оставить отзыв?</p>
-          <p className="text-sm text-text-tertiary font-body">Напишите нам в Telegram или WhatsApp</p>
-          <div className="mt-4 flex justify-center gap-4 text-sm text-accent font-body">
-            <a href="#" className="hover:underline py-2">Telegram</a>
-            <a href="#" className="hover:underline py-2">WhatsApp</a>
+          <p className="text-sm text-text-tertiary font-body">Напишите нам в социальных сетях</p>
+          <div className="mt-4 flex justify-center">
+            <SocialLinksFooter />
           </div>
         </div>
       </div>

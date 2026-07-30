@@ -52,7 +52,7 @@ class LocalStorageAdapter implements StorageAdapter {
   async delete(key: string): Promise<void> {
     const fs = await import('fs/promises');
     const path = await import('path');
-    await fs.unlink(path.join(this.basePath, key)).catch(() => {});
+    await fs.unlink(path.join(this.basePath, key));
   }
 
   getUrl(key: string): string {

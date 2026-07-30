@@ -11,14 +11,7 @@ export function DashboardHeader() {
   const router = useRouter();
   const { data: user } = trpc.auth.me.useQuery();
   const utils = trpc.useUtils();
-  const logoutMut = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      localStorage.removeItem('bp_access_token');
-      localStorage.removeItem('bp_refresh_token');
-      utils.invalidate();
-      router.push('/auth/login');
-    },
-  });
+  const logoutMut = trpc.auth.logout.useMutation();
   const [profileOpen, setProfileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -81,7 +74,13 @@ export function DashboardHeader() {
               onClick={() => {
                 const rt = localStorage.getItem('bp_refresh_token');
                 if (rt) logoutMut.mutate({ refreshToken: rt });
+                localStorage.removeItem('bp_access_token');
+                localStorage.removeItem('bp_refresh_token');
+                sessionStorage.clear();
+                document.cookie = 'bp_role=; path=/; max-age=0';
+                utils.invalidate();
                 setProfileOpen(false);
+                router.push('/');
               }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-error hover:bg-error/10 transition-colors font-body"
             >

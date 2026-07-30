@@ -1,7 +1,8 @@
 import { SectionTitle } from '@/components/shared/section-title';
 import { Button } from '@/components/ui/button';
 import { MobileBackButton } from '@/components/shared/mobile-back-button';
-import { MapPinIcon, PhoneIcon, InstagramIcon, TelegramIcon } from '@/components/ui/icons';
+import { SocialLinksFooter } from '@/components/shared/social-links-footer';
+import { MapPinIcon, PhoneIcon } from '@/components/ui/icons';
 import Link from 'next/link';
 
 export const metadata = { title: 'Контакты', description: 'Контакты барбершопа BarberPro' };
@@ -59,17 +60,7 @@ export default function ContactsPage() {
 
             <div>
               <h3 className="mb-3 font-display text-lg font-semibold text-text-primary">Социальные сети</h3>
-              <div className="flex gap-3">
-                <a href="#" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-lg">
-                  <InstagramIcon />
-                </a>
-                <a href="#" aria-label="Telegram" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-lg">
-                  <TelegramIcon />
-                </a>
-                <a href="#" aria-label="WhatsApp" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-lg">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12.1 2C6.5 2 2 6.5 2 12.1v-.2C2 17.5 6.5 22 12.1 22h-.2c5.5 0 10.1-4.5 10.1-10.1v.2C22 6.5 17.5 2 12.1 2z"/></svg>
-                </a>
-              </div>
+              <SocialLinksFooter />
             </div>
           </div>
 
@@ -79,7 +70,7 @@ export default function ContactsPage() {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
               <p className="text-sm text-text-tertiary font-body">ул. Тверская, 15, Москва</p>
-              <p className="mt-2 text-xs text-text-tertiary font-body">Карта будет добавлена позже</p>
+              <p className="mt-2 text-xs text-text-tertiary font-body">Ждём вас в гости</p>
             </div>
           </div>
         </div>

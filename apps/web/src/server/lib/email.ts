@@ -7,14 +7,43 @@ export interface SendEmailOptions {
   html: string;
 }
 
+let nodemailer: typeof import('nodemailer') | null = null;
+
+async function getTransporter() {
+  if (!nodemailer) {
+    try {
+      nodemailer = await import('nodemailer');
+    } catch {
+      return null;
+    }
+  }
+  if (!process.env.SMTP_HOST || !process.env.SMTP_PORT) return null;
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: process.env.SMTP_USER
+      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? '' }
+      : undefined,
+  });
+}
+
 const emailService = {
   async send(options: SendEmailOptions): Promise<void> {
-    logger.info('Email would be sent', { to: options.to, subject: options.subject });
-
-    if (process.env.NODE_ENV === 'production') {
-      // TODO: Integrate with actual email provider (SendGrid, SES, etc.)
-      logger.warn('Email sending not configured — using logger only');
+    const transporter = await getTransporter();
+    if (!transporter) {
+      logger.warn('SMTP not configured — email not sent', { to: options.to, subject: options.subject });
+      return;
     }
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM ?? 'noreply@barberpro.ru',
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+    });
+
+    logger.info('Email sent', { to: options.to, subject: options.subject });
   },
 
   async sendVerificationEmail(email: string, token: string): Promise<void> {
