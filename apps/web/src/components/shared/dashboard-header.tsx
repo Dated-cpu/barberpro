@@ -72,15 +72,18 @@ export function DashboardHeader() {
             <button
               type="button"
               onClick={() => {
-                const rt = localStorage.getItem('bp_refresh_token');
-                if (rt) logoutMut.mutate({ refreshToken: rt });
-                localStorage.removeItem('bp_access_token');
-                localStorage.removeItem('bp_refresh_token');
-                sessionStorage.clear();
-                document.cookie = 'bp_role=; path=/; max-age=0';
-                utils.invalidate();
-                setProfileOpen(false);
-                router.push('/');
+                logoutMut.mutate(undefined, {
+                  onSuccess: () => {
+                    utils.invalidate();
+                    setProfileOpen(false);
+                    router.push('/');
+                  },
+                  onError: () => {
+                    utils.invalidate();
+                    setProfileOpen(false);
+                    router.push('/');
+                  },
+                });
               }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-error hover:bg-error/10 transition-colors font-body"
             >

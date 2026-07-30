@@ -7,7 +7,6 @@ import { trpc } from '@/trpc/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/shared/section-title';
-import { authStorage } from '@/lib/auth-storage';
 import { useToast } from '@/components/ui/toast';
 
 function getRedirectPath(role: string): string {
@@ -22,10 +21,6 @@ function getRedirectPath(role: string): string {
   }
 }
 
-function setRoleCookie(role: string) {
-  document.cookie = `bp_role=${role}; path=/; max-age=86400; SameSite=Lax`;
-}
-
 export default function LoginPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -36,8 +31,6 @@ export default function LoginPage() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
-      authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
-      setRoleCookie(data.user.role);
       addToast('Вход выполнен успешно', 'success');
       utils.auth.me.invalidate();
       setTimeout(() => router.replace(getRedirectPath(data.user.role)), 200);

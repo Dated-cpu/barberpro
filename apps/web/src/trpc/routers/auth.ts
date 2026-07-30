@@ -3,13 +3,36 @@ import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { authService } from '../../server/services/auth';
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, changePasswordSchema, updateProfileSchema } from '@/validators/auth';
 import { userRepository } from '@/server/repositories/user';
+import { COOKIE_NAMES, setCookie, clearCookie, parseMaxAge } from '@/server/lib/cookies';
+import { env } from '@/server/config/env';
+
+const ACCESS_MAX_AGE = parseMaxAge(env.JWT_ACCESS_EXPIRES_IN);
+const REFRESH_MAX_AGE = parseMaxAge(env.JWT_REFRESH_EXPIRES_IN);
+const REFRESH_REMEMBER_MAX_AGE = parseMaxAge(env.JWT_REFRESH_REMEMBER_EXPIRES_IN);
+
+function setAuthCookies(ctx: { responseCookies: Map<string, string> }, tokens: { accessToken: string; refreshToken: string }, rememberMe?: boolean) {
+  ctx.responseCookies.set(
+    COOKIE_NAMES.ACCESS_TOKEN,
+    setCookie(COOKIE_NAMES.ACCESS_TOKEN, tokens.accessToken, ACCESS_MAX_AGE),
+  );
+  ctx.responseCookies.set(
+    COOKIE_NAMES.REFRESH_TOKEN,
+    setCookie(COOKIE_NAMES.REFRESH_TOKEN, tokens.refreshToken, rememberMe ? REFRESH_REMEMBER_MAX_AGE : REFRESH_MAX_AGE),
+  );
+}
+
+function clearAuthCookies(ctx: { responseCookies: Map<string, string> }) {
+  ctx.responseCookies.set(COOKIE_NAMES.ACCESS_TOKEN, clearCookie(COOKIE_NAMES.ACCESS_TOKEN));
+  ctx.responseCookies.set(COOKIE_NAMES.REFRESH_TOKEN, clearCookie(COOKIE_NAMES.REFRESH_TOKEN));
+}
 
 export const authRouter = router({
   register: publicProcedure
     .input(registerSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const result = await authService.register(input);
-      return result;
+      setAuthCookies(ctx, result.tokens);
+      return { user: result.user };
     }),
 
   login: publicProcedure
@@ -22,26 +45,33 @@ export const authRouter = router({
         ctx.userAgent ?? undefined,
         ctx.ip ?? undefined,
       );
-      return result;
+      setAuthCookies(ctx, result.tokens, input.rememberMe);
+      return { user: result.user };
     }),
 
   refresh: publicProcedure
-    .input(z.object({ refreshToken: z.string() }))
-    .mutation(async ({ input }) => {
-      const tokens = await authService.refresh(input.refreshToken);
-      return tokens;
+    .mutation(async ({ ctx }) => {
+      const refreshToken = ctx.cookies.get(COOKIE_NAMES.REFRESH_TOKEN);
+      if (!refreshToken) throw new Error('No refresh token');
+      const tokens = await authService.refresh(refreshToken);
+      setAuthCookies(ctx, tokens);
+      return { success: true };
     }),
 
-  logout: protectedProcedure
-    .input(z.object({ refreshToken: z.string() }))
-    .mutation(async ({ input }) => {
-      await authService.logout(input.refreshToken);
+  logout: publicProcedure
+    .mutation(async ({ ctx }) => {
+      const refreshToken = ctx.cookies.get(COOKIE_NAMES.REFRESH_TOKEN);
+      if (refreshToken) {
+        await authService.logout(refreshToken).catch(() => {});
+      }
+      clearAuthCookies(ctx);
       return { success: true };
     }),
 
   logoutAll: protectedProcedure
     .mutation(async ({ ctx }) => {
       await authService.logoutAllDevices(ctx.user!.id);
+      clearAuthCookies(ctx);
       return { success: true };
     }),
 

@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/shared/section-title';
 import { ConsentCheckbox } from '@/components/ui/consent-checkbox';
-import { authStorage } from '@/lib/auth-storage';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,8 +16,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: (data) => {
-      authStorage.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
+    onSuccess: () => {
       router.push('/profile');
     },
     onError: (err) => {

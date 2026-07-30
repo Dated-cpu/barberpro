@@ -202,22 +202,22 @@ function SecurityTab() {
   };
 
   const handleLogout = async () => {
-    const refreshToken = authStorage.getRefreshToken();
-    if (refreshToken) {
-      logoutMutation.mutate({ refreshToken });
-    }
-    authStorage.clearTokens();
-    sessionStorage.clear();
-    document.cookie = 'bp_role=; path=/; max-age=0';
-    router.push('/');
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        authStorage.clearSession();
+        router.push('/');
+      },
+      onError: () => {
+        authStorage.clearSession();
+        router.push('/');
+      },
+    });
   };
 
   const handleLogoutAll = () => {
     logoutAllMutation.mutate(undefined, {
       onSuccess: () => {
-        authStorage.clearTokens();
-        sessionStorage.clear();
-        document.cookie = 'bp_role=; path=/; max-age=0';
+        authStorage.clearSession();
         router.push('/');
       },
     });

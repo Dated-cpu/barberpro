@@ -37,16 +37,7 @@ function getCookieValue(cookieHeader: string | null, name: string): string | nul
 }
 
 function getRole(request: NextRequest): string | null {
-  let token: string | null = null;
-
-  const authHeader = request.headers.get('authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    token = authHeader.slice(7);
-  }
-
-  if (!token) {
-    token = getCookieValue(request.headers.get('cookie'), 'bp_access_token');
-  }
+  const token = getCookieValue(request.headers.get('cookie'), 'bp_access_token');
 
   if (token) {
     const payload = decodeJwtPayload(token);
