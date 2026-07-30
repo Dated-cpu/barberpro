@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SectionTitle } from '@/components/shared/section-title';
 import { Reveal } from '@/components/shared/reveal';
 import { HeroCinematic } from '@/components/hero/hero-cinematic';
+
+export const metadata: Metadata = {
+  title: 'Главная',
+  description: 'Премиальный барбершоп BarberPro в Москве. Стрижки, бритьё, укладка от лучших мастеров. Запись онлайн 24/7.',
+};
 
 export default function Home() {
   return (

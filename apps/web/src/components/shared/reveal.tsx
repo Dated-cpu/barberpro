@@ -33,7 +33,7 @@ export function Reveal({
 
   return (
     <Tag
-      ref={ref as React.Ref<any>}
+      ref={ref as unknown as React.Ref<HTMLDivElement>}
       className={cn(
         'transition-all will-change-transform will-change-opacity',
         'ease-out',
