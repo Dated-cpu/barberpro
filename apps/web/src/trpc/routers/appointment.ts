@@ -13,11 +13,17 @@ import {
   clientAppointmentsSchema,
 } from '@/validators/booking';
 import { assertAppointmentAccess } from '@/server/auth/authorization';
+import { rateLimit } from '@/server/security/rate-limit';
 
 export const appointmentRouter = router({
   create: publicProcedure
     .input(createAppointmentSchema)
     .mutation(async ({ ctx, input }) => {
+      await rateLimit({
+        key: `appointment:create:${ctx.ip ?? 'unknown'}`,
+        limit: 20,
+        windowSeconds: 3600,
+      });
       const appointment = await appointmentService.create({
         ...input,
         clientId: ctx.user?.id ?? undefined,

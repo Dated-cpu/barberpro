@@ -5,6 +5,7 @@ import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema,
 import { userRepository } from '@/server/repositories/user';
 import { COOKIE_NAMES, setCookie, clearCookie, parseMaxAge } from '@/server/lib/cookies';
 import { env } from '@/server/config/env';
+import { rateLimit } from '@/server/security/rate-limit';
 
 const ACCESS_MAX_AGE = parseMaxAge(env.JWT_ACCESS_EXPIRES_IN);
 const REFRESH_MAX_AGE = parseMaxAge(env.JWT_REFRESH_EXPIRES_IN);
@@ -30,6 +31,11 @@ export const authRouter = router({
   register: publicProcedure
     .input(registerSchema)
     .mutation(async ({ ctx, input }) => {
+      await rateLimit({
+        key: `auth:register:${ctx.ip ?? 'unknown'}`,
+        limit: 3,
+        windowSeconds: 900,
+      });
       const result = await authService.register(input);
       setAuthCookies(ctx, result.tokens);
       return { user: result.user };
@@ -38,6 +44,11 @@ export const authRouter = router({
   login: publicProcedure
     .input(loginSchema)
     .mutation(async ({ ctx, input }) => {
+      await rateLimit({
+        key: `auth:login:${ctx.ip ?? 'unknown'}`,
+        limit: 10,
+        windowSeconds: 900,
+      });
       const result = await authService.login(
         input.login,
         input.password,
@@ -98,13 +109,23 @@ export const authRouter = router({
   changePassword: protectedProcedure
     .input(changePasswordSchema)
     .mutation(async ({ ctx, input }) => {
+      await rateLimit({
+        key: `auth:change-password:${ctx.user!.id}`,
+        limit: 3,
+        windowSeconds: 3600,
+      });
       await authService.changePassword(ctx.user!.id, input.oldPassword, input.newPassword);
       return { success: true };
     }),
 
   forgotPassword: publicProcedure
     .input(forgotPasswordSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      await rateLimit({
+        key: `auth:forgot-password:${ctx.ip ?? 'unknown'}`,
+        limit: 3,
+        windowSeconds: 3600,
+      });
       await authService.forgotPassword(input.email);
       return { success: true };
     }),
@@ -112,6 +133,11 @@ export const authRouter = router({
   resetPassword: publicProcedure
     .input(resetPasswordSchema)
     .mutation(async ({ input }) => {
+      await rateLimit({
+        key: `auth:reset-password:${input.token.slice(0, 8)}`,
+        limit: 5,
+        windowSeconds: 3600,
+      });
       await authService.resetPassword(input.token, input.password);
       return { success: true };
     }),
@@ -119,12 +145,22 @@ export const authRouter = router({
   verifyEmail: publicProcedure
     .input(verifyEmailSchema)
     .mutation(async ({ input }) => {
+      await rateLimit({
+        key: `auth:verify-email:${input.token.slice(0, 8)}`,
+        limit: 5,
+        windowSeconds: 3600,
+      });
       await authService.verifyEmail(input.token);
       return { success: true };
     }),
 
   resendVerification: protectedProcedure
     .mutation(async ({ ctx }) => {
+      await rateLimit({
+        key: `auth:resend-verification:${ctx.user!.id}`,
+        limit: 3,
+        windowSeconds: 3600,
+      });
       await authService.resendVerification(ctx.user!.id);
       return { success: true };
     }),
