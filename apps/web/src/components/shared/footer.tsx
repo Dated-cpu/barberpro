@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SocialLinksFooter } from './social-links-footer';
 
 export function Footer() {
   return (
@@ -47,17 +48,7 @@ export function Footer() {
 
           <div className="sm:col-span-2 lg:col-span-1">
             <h4 className="mb-3 sm:mb-4 text-sm font-semibold text-text-primary font-body">Мы в соцсетях</h4>
-            <div className="flex gap-3">
-              <a href="#" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-              </a>
-              <a href="#" aria-label="Telegram" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21.5 4.5l-19 7.5 7 2.5 3 8 9-18z"/></svg>
-              </a>
-              <a href="#" aria-label="VK" className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.1 2C6.5 2 2 6.5 2 12.1v-.2C2 17.5 6.5 22 12.1 22h-.2c5.5 0 10.1-4.5 10.1-10.1v.2C22 6.5 17.5 2 12.1 2z"/></svg>
-              </a>
-            </div>
+            <SocialLinksFooter />
           </div>
         </div>
 

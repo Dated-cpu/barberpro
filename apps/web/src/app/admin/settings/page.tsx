@@ -1,86 +1,136 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/trpc/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
 import { useToast } from '@/components/ui/toast';
 
 const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+type SettingsMap = Record<string, string>;
+
 export default function AdminSettings() {
   const { addToast } = useToast();
   const utils = trpc.useUtils();
-  const { data: user } = trpc.auth.me.useQuery();
-  const { data: workingDays } = trpc.settings.getWorkingDays.useQuery();
 
-  const [profileForm, setProfileForm] = useState<Record<string, string> | null>(null);
+  const profileResult = (trpc.auth as any).getProfile.useQuery();
+  const profile: { firstName: string; lastName: string; phone: string; email: string; description?: string } | undefined = profileResult.data;
+  const wdResult = (trpc.settings as any).getWorkingDays.useQuery();
+  const workingDays: { id: string; dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean }[] | undefined = wdResult.data;
+  const rawSettingsResult = (trpc.settings as any).adminGetSystemSettings.useQuery();
+  const rawSettings: { key: string; value: unknown }[] | undefined = rawSettingsResult.data;
+
+  const rawItems: { key: string; value: unknown }[] | undefined = rawSettings;
+  const settings: SettingsMap = {};
+  if (rawItems) {
+    for (const s of rawItems) {
+      settings[s.key] = typeof s.value === 'string' ? (s.value as string) : JSON.stringify(s.value);
+    }
+  }
+
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', phone: '', email: '' });
   const [editingDay, setEditingDay] = useState<{ dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean; id?: string } | null>(null);
-  const [seoTitle, setSeoTitle] = useState('');
-  const [seoDesc, setSeoDesc] = useState('');
-  const [socialInsta, setSocialInsta] = useState('');
-  const [socialTelegram, setSocialTelegram] = useState('');
-  const [socialWhatsapp, setSocialWhatsapp] = useState('');
 
-  const updateProfileMut = trpc.settings.updateProfile.useMutation({
-    onSuccess: () => { utils.auth.me.invalidate(); addToast('Профиль обновлён', 'success'); },
-    onError: (e) => addToast(e.message, 'error'),
-  });
+  const [seo, setSeo] = useState({ title: '', description: '', keywords: '', ogImage: '' });
+  const [social, setSocial] = useState({ instagram: '', telegram: '', whatsapp: '' });
 
-  const upsertDayMut = trpc.settings.upsertWorkingDay.useMutation({
-    onSuccess: () => { utils.settings.getWorkingDays.invalidate(); addToast('Расписание сохранено', 'success'); setEditingDay(null); },
-  });
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        firstName: profile.firstName ?? '',
+        lastName: profile.lastName ?? '',
+        phone: profile.phone ?? '',
+        email: profile.email ?? '',
+      });
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    setSeo({
+      title: settings['seo_title'] ?? '',
+      description: settings['seo_description'] ?? '',
+      keywords: settings['seo_keywords'] ?? '',
+      ogImage: settings['seo_og_image'] ?? '',
+    });
+    setSocial({
+      instagram: settings['social_instagram'] ?? '',
+      telegram: settings['social_telegram'] ?? '',
+      whatsapp: settings['social_whatsapp'] ?? '',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawSettings]);
+
+  const updateProfileMut = (trpc.settings as any).updateProfile.useMutation({
+    onSuccess: () => { (utils.auth as any).getProfile.invalidate(); utils.auth.me.invalidate(); addToast('Профиль обновлён', 'success'); },
+    onError: (e: Error) => addToast(e.message, 'error'),
+  }) as { mutate: (data: { firstName?: string; lastName?: string; phone?: string; email?: string }) => void; isPending: boolean };
+
+  const upsertDayMut = (trpc.settings as any).upsertWorkingDay.useMutation({
+    onSuccess: () => { (utils.settings as any).getWorkingDays.invalidate(); addToast('Расписание сохранено', 'success'); setEditingDay(null); },
+    onError: (e: Error) => addToast(e.message, 'error'),
+  }) as { mutate: (data: { dayOfWeek: number; startTime: string; endTime: string; isDayOff: boolean; id?: string }) => void; isPending: boolean };
+
+  const upsertSettingMut = (trpc.settings.adminUpsertSetting as any).useMutation({
+    onSuccess: () => { (utils.settings as any).adminGetSystemSettings.invalidate(); },
+    onError: (e: Error) => addToast(e.message, 'error'),
+  }) as { mutateAsync: (input: { key: string; value: string; type: string; description?: string }) => Promise<unknown>; isPending: boolean; mutate: (input: { key: string; value: string; type: string; description?: string }) => void };
 
   function handleProfileSave() {
-    if (!profileForm) return;
-    updateProfileMut.mutate({ firstName: profileForm.firstName, lastName: profileForm.lastName, phone: profileForm.phone });
+    updateProfileMut.mutate({
+      firstName: profileForm.firstName || undefined,
+      lastName: profileForm.lastName || undefined,
+      phone: profileForm.phone || undefined,
+      email: profileForm.email || undefined,
+    });
+  }
+
+  async function handleSeoSave() {
+    await Promise.all([
+      upsertSettingMut.mutateAsync({ key: 'seo_title', value: seo.title, type: 'string', description: 'Название сайта' }),
+      upsertSettingMut.mutateAsync({ key: 'seo_description', value: seo.description, type: 'string', description: 'Meta описание' }),
+      upsertSettingMut.mutateAsync({ key: 'seo_keywords', value: seo.keywords, type: 'string', description: 'Meta keywords' }),
+      upsertSettingMut.mutateAsync({ key: 'seo_og_image', value: seo.ogImage, type: 'string', description: 'OG image URL' }),
+    ]);
+    addToast('SEO сохранён', 'success');
+  }
+
+  async function handleSocialSave() {
+    await Promise.all([
+      upsertSettingMut.mutateAsync({ key: 'social_instagram', value: social.instagram, type: 'string', description: 'Instagram' }),
+      upsertSettingMut.mutateAsync({ key: 'social_telegram', value: social.telegram, type: 'string', description: 'Telegram' }),
+      upsertSettingMut.mutateAsync({ key: 'social_whatsapp', value: social.whatsapp, type: 'string', description: 'WhatsApp' }),
+    ]);
+    addToast('Социальные сети сохранены', 'success');
   }
 
   return (
     <div className="flex flex-col gap-8">
+
       {/* Profile */}
       <div>
         <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Профиль</h2>
         <Card className="p-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input id="pf-firstname" label="Имя" value={profileForm?.firstName ?? user?.firstName ?? ''}
-              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), firstName: e.target.value })} />
-            <Input id="pf-lastname" label="Фамилия" value={profileForm?.lastName ?? user?.lastName ?? ''}
-              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), lastName: e.target.value })} />
-            <Input id="pf-phone" label="Телефон" value={profileForm?.phone ?? user?.phone ?? ''}
-              onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), phone: e.target.value })} />
-            <Input id="pf-email" label="Email" value={user?.email ?? ''} disabled className="opacity-50" />
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs text-text-tertiary font-body">Описание</label>
-              <textarea className="w-full rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary font-body placeholder:text-text-tertiary/50"
-                placeholder="Краткое описание вас и ваших услуг" rows={3}
-                value={profileForm?.description ?? ''}
-                onChange={(e) => setProfileForm({ ...(profileForm ?? { firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '' }), description: e.target.value })} />
-            </div>
+            <Input id="pf-firstname" label="Имя" value={profileForm.firstName}
+              onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })} />
+            <Input id="pf-lastname" label="Фамилия" value={profileForm.lastName}
+              onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })} />
+            <Input id="pf-phone" label="Телефон" value={profileForm.phone}
+              onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} />
+            <Input id="pf-email" label="Email" type="email" value={profileForm.email}
+              onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} />
           </div>
           <div className="mt-4 flex justify-end">
-            <Button size="sm" onClick={handleProfileSave} loading={updateProfileMut.isPending}>Сохранить</Button>
+            <Button size="sm" onClick={handleProfileSave} loading={updateProfileMut.isPending}>Сохранить изменения</Button>
           </div>
         </Card>
       </div>
 
-      {/* Social */}
+      {/* Schedule */}
       <div>
-        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Социальные сети</h2>
-        <Card className="p-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Input id="soc-insta" label="Instagram" placeholder="@username" value={socialInsta} onChange={(e) => setSocialInsta(e.target.value)} />
-            <Input id="soc-tg" label="Telegram" placeholder="@username" value={socialTelegram} onChange={(e) => setSocialTelegram(e.target.value)} />
-            <Input id="soc-wa" label="WhatsApp" placeholder="+7 (999) 123-45-67" value={socialWhatsapp} onChange={(e) => setSocialWhatsapp(e.target.value)} />
-          </div>
-        </Card>
-      </div>
-
-      {/* Working hours */}
-      <div>
-        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Рабочее расписание</h2>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Расписание</h2>
         <div className="flex flex-col gap-2">
           {dayNames.map((name, i) => {
             const dayOfWeek = i + 1;
@@ -96,13 +146,16 @@ export default function AdminSettings() {
                         <p className="text-sm text-text-tertiary font-body">Выходной</p>
                       ) : (
                         <>
-                          <Input id={`start-${dayOfWeek}`} type="time" value={editingDay.startTime} onChange={(e) => setEditingDay({ ...editingDay, startTime: e.target.value })} className="w-28" />
+                          <Input id={`start-${dayOfWeek}`} type="time" value={editingDay.startTime}
+                            onChange={(e) => setEditingDay({ ...editingDay, startTime: e.target.value })} className="w-28" />
                           <span className="text-text-tertiary">—</span>
-                          <Input id={`end-${dayOfWeek}`} type="time" value={editingDay.endTime} onChange={(e) => setEditingDay({ ...editingDay, endTime: e.target.value })} className="w-28" />
+                          <Input id={`end-${dayOfWeek}`} type="time" value={editingDay.endTime}
+                            onChange={(e) => setEditingDay({ ...editingDay, endTime: e.target.value })} className="w-28" />
                         </>
                       )}
                       <label className="flex items-center gap-2 text-xs text-text-secondary font-body">
-                        <input type="checkbox" checked={editingDay.isDayOff} onChange={(e) => setEditingDay({ ...editingDay, isDayOff: e.target.checked })} />
+                        <input type="checkbox" checked={editingDay.isDayOff}
+                          onChange={(e) => setEditingDay({ ...editingDay, isDayOff: e.target.checked })} />
                         Выходной
                       </label>
                     </div>
@@ -119,7 +172,10 @@ export default function AdminSettings() {
                       <Button size="sm" variant="ghost" onClick={() => setEditingDay(null)}>Отмена</Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="ghost" onClick={() => setEditingDay({ dayOfWeek, startTime: wd?.startTime ?? '09:00', endTime: wd?.endTime ?? '19:00', isDayOff: wd?.isDayOff ?? false, id: wd?.id })}>Изменить</Button>
+                    <Button size="sm" variant="ghost"
+                      onClick={() => setEditingDay({ dayOfWeek, startTime: wd?.startTime ?? '09:00', endTime: wd?.endTime ?? '19:00', isDayOff: wd?.isDayOff ?? false, id: wd?.id })}>
+                      Изменить
+                    </Button>
                   )}
                 </div>
               </Card>
@@ -133,13 +189,40 @@ export default function AdminSettings() {
         <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">SEO</h2>
         <Card className="p-4">
           <div className="grid gap-4">
-            <Input id="seo-title" label="Заголовок (title)" placeholder="Барбершоп в Москве | BarberPRO" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+            <Input id="seo-title" label="Название сайта (title)" placeholder="Барбершоп в Москве | BarberPRO"
+              value={seo.title} onChange={(e) => setSeo({ ...seo, title: e.target.value })} />
             <div>
               <label className="mb-1 block text-xs text-text-tertiary font-body">Описание (meta description)</label>
               <textarea className="w-full rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary font-body placeholder:text-text-tertiary/50"
                 placeholder="Лучший барбершоп в центре Москвы. Стрижки, бритьё, укладка. Запись онлайн."
-                rows={2} value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} />
+                rows={2} value={seo.description}
+                onChange={(e) => setSeo({ ...seo, description: e.target.value })} />
             </div>
+            <Input id="seo-keywords" label="Keywords (через запятую)" placeholder="барбершоп, стрижка, Москва"
+              value={seo.keywords} onChange={(e) => setSeo({ ...seo, keywords: e.target.value })} />
+            <Input id="seo-ogimage" label="OG Image (URL)" placeholder="https://example.com/og.jpg"
+              value={seo.ogImage} onChange={(e) => setSeo({ ...seo, ogImage: e.target.value })} />
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" onClick={handleSeoSave} loading={upsertSettingMut.isPending}>Сохранить SEO</Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* Social Networks */}
+      <div>
+        <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Социальные сети</h2>
+        <Card className="p-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input id="soc-insta" label="Instagram" placeholder="@username" value={social.instagram}
+              onChange={(e) => setSocial({ ...social, instagram: e.target.value })} />
+            <Input id="soc-tg" label="Telegram" placeholder="@username" value={social.telegram}
+              onChange={(e) => setSocial({ ...social, telegram: e.target.value })} />
+            <Input id="soc-wa" label="WhatsApp" placeholder="+7 (999) 123-45-67" value={social.whatsapp}
+              onChange={(e) => setSocial({ ...social, whatsapp: e.target.value })} />
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" onClick={handleSocialSave} loading={upsertSettingMut.isPending}>Сохранить</Button>
           </div>
         </Card>
       </div>

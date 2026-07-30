@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import prisma from '../db/client';
 
 export const settingsService = {
@@ -70,11 +71,32 @@ export const settingsService = {
     });
   },
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; avatarId?: string | null }) {
+  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; email?: string | null; description?: string | null; avatarId?: string | null }) {
+    if (data.phone) {
+      const existing = await prisma.user.findUnique({ where: { phone: data.phone } });
+      if (existing && existing.id !== userId) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Телефон уже используется' });
+      }
+    }
+    if (data.email) {
+      const existing = await prisma.user.findUnique({ where: { email: data.email } });
+      if (existing && existing.id !== userId) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Email уже используется' });
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.avatarId !== undefined) updateData.avatarId = data.avatarId;
+
     return prisma.user.update({
       where: { id: userId },
-      data,
-      select: { id: true, firstName: true, lastName: true, phone: true, email: true },
+      data: updateData,
+      select: { id: true, firstName: true, lastName: true, phone: true, email: true, description: true, avatarId: true },
     });
   },
 

@@ -24,6 +24,7 @@ export interface AuthUser {
   isActive: boolean;
   emailVerified?: boolean;
   avatarId?: string | null;
+  description?: string | null;
 }
 
 export interface AuthTokens {

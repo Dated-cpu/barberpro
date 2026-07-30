@@ -29,7 +29,7 @@ export async function createContext(opts: CreateContextOptions): Promise<Context
       const payload = verifyAccessToken(token);
       const dbUser = await prisma.user.findUnique({
         where: { id: payload.userId },
-        select: { id: true, email: true, phone: true, firstName: true, lastName: true, role: true, isActive: true },
+        select: { id: true, email: true, phone: true, firstName: true, lastName: true, role: true, isActive: true, description: true },
       });
       if (dbUser && dbUser.isActive) {
         user = {
