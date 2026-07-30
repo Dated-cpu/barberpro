@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 const statusColors: Record<string, 'warning' | 'success' | 'error'> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'error' };
 const statusLabels: Record<string, string> = { PENDING: 'На модерации', APPROVED: 'Одобрен', REJECTED: 'Отклонён' };
@@ -30,11 +31,14 @@ export default function AdminReviews() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-end">
-        <div className="flex gap-3 text-sm text-text-tertiary font-body">
-          {stats ? <><span>Всего: {stats.total}</span><span className="text-warning">Ожидают: {stats.pending}</span></> : null}
-        </div>
-      </div>
+      <PageHeader title="Отзывы" action={
+        stats ? (
+          <div className="flex gap-3 text-sm text-text-tertiary font-body">
+            <span>Всего: {stats.total}</span>
+            <span className="text-warning">Ожидают: {stats.pending}</span>
+          </div>
+        ) : null
+      } />
 
       <div className="flex gap-2">
         {(['PENDING', 'APPROVED', 'REJECTED', 'ALL'] as const).map((s) => (

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/page-header';
 
 type ViewMode = 'day' | 'week';
 type AppStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
@@ -131,8 +132,7 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div />
+      <PageHeader title="Календарь" action={
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" onClick={() => { setShowManualCreate(true); setNewAppt({ ...newAppt, startTime: new Date().toISOString().slice(0, 16) }); }}>+ Запись</Button>
           <Button size="sm" variant="secondary" onClick={() => setShowBlockSlot(true)}>Блокировка</Button>
@@ -141,7 +141,7 @@ export default function CalendarPage() {
             <button onClick={() => setViewMode('week')} className={cn('rounded-lg px-4 py-2 text-sm transition-colors font-body', viewMode === 'week' ? 'bg-accent text-text-inverse' : 'text-text-secondary hover:text-text-primary')}>Неделя</button>
           </div>
         </div>
-      </div>
+      } />
 
       {/* Manual Create Modal */}
       <Modal open={showManualCreate} onClose={() => setShowManualCreate(false)} title="Создать запись">

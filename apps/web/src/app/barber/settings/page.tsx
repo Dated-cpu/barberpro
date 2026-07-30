@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -64,6 +65,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <PageHeader title="Настройки" />
       {/* Profile */}
       <div>
         <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Профиль</h2>

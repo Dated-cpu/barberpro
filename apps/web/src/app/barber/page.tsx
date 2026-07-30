@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Ожидает', CONFIRMED: 'Подтверждён', IN_PROGRESS: 'В работе',
@@ -64,6 +65,7 @@ export default function BarberDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader title="Обзор" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5">
           <p className="mb-1 text-xs text-text-tertiary font-body">Записей сегодня</p>

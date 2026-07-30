@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/shared/page-header';
 
 function todayString() {
   return new Date().toISOString().slice(0, 10);
@@ -45,9 +46,7 @@ export default function StatisticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Статистика</h1>
-      </div>
+      <PageHeader title="Статистика" />
 
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3">

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/page-header';
 
 const STATUS_COLORS: Record<string, 'warning' | 'accent' | 'success' | 'error' | 'default'> = {
   PENDING: 'warning', CONFIRMED: 'accent', IN_PROGRESS: 'accent',
@@ -50,7 +51,7 @@ export default function MobileBarberMode() {
     <div className="flex flex-col gap-4 p-4 pt-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-xl font-bold text-text-primary">Мой день</h1>
+        <PageHeader title="Мой день" />
         <div className="flex items-center gap-2 text-xs text-text-tertiary font-body">
           <span>{appointments.length} записей</span>
           <span className="h-1 w-1 rounded-full bg-text-tertiary" />

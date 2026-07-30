@@ -16,13 +16,14 @@ const config: Config = {
           primary: '#0A0A0B',
           secondary: '#1A1512',
           tertiary: '#2A1F1A',
-          elevated: '#1A1512',
+          elevated: '#1E1815',
+          card: '#221B17',
           glass: 'rgba(26,21,18,0.6)',
         },
         text: {
           primary: '#F5F0EB',
-          secondary: '#6B6560',
-          tertiary: '#4A4540',
+          secondary: '#8A8480',
+          tertiary: '#5E5550',
           inverse: '#0A0A0B',
         },
         border: {

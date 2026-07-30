@@ -5,6 +5,7 @@ import { trpc } from '@/trpc/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/shared/page-header';
 
 const statusMap: Record<string, string> = {
   PENDING: 'Ожидает', CONFIRMED: 'Подтверждён', IN_PROGRESS: 'В работе',
@@ -31,8 +32,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Записи</h1>
+      <PageHeader title="Записи" action={
         <Input
           id="search"
           placeholder="Поиск клиента..."
@@ -40,7 +40,7 @@ export default function AppointmentsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </div>
+      } />
 
       <div className="flex flex-wrap gap-2">
         {['ALL', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map((s) => (
@@ -59,7 +59,7 @@ export default function AppointmentsPage() {
       <div className="flex flex-col gap-2">
         {filtered.length > 0 ? (
           filtered.map((a) => (
-            <Card key={a.id} className="flex items-center justify-between p-4">
+            <Card key={a.id} className="flex items-center justify-between p-4" variant="elevated">
               <div className="flex items-center gap-4">
                 <p className="min-w-[60px] font-body text-sm font-medium text-text-primary">
                   {new Date(a.startTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
@@ -78,7 +78,7 @@ export default function AppointmentsPage() {
             </Card>
           ))
         ) : (
-          <Card className="p-6 text-center">
+          <Card className="p-6 text-center" variant="elevated">
             <p className="text-sm text-text-tertiary font-body">Записей не найдено</p>
           </Card>
         )}

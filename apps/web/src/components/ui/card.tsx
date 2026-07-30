@@ -14,8 +14,8 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         className={cn(
           'rounded-xl transition-all duration-300 will-change-transform',
-          variant === 'elevated' && 'bg-bg-elevated border border-border shadow-lg hover:-translate-y-0.5 hover:shadow-xl',
-          variant === 'outlined' && 'bg-transparent border border-border hover:border-gold/30',
+          variant === 'elevated' && 'bg-bg-card border border-border/80 shadow-lg hover:-translate-y-0.5 hover:border-accent/20 hover:shadow-[0_0_30px_var(--color-gold-glow)]',
+          variant === 'outlined' && 'bg-transparent border border-border hover:border-accent/30',
           variant === 'ghost' && 'bg-bg-secondary hover:bg-espresso',
           className,
         )}

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Ожидает', CONFIRMED: 'Подтверждён', IN_PROGRESS: 'В работе',
@@ -61,9 +62,9 @@ export default function AdminAppointments() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-end">
+      <PageHeader title="Записи" action={
         <Input id="apt-search" placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-56" />
-      </div>
+      } />
 
       <div className="flex flex-wrap gap-2">
         {statuses.map((s) => (

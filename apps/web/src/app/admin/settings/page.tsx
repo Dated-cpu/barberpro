@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -107,11 +108,12 @@ export default function AdminSettings() {
 
   return (
     <div className="flex flex-col gap-8">
+      <PageHeader title="Настройки" />
 
       {/* Profile */}
       <div>
         <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Профиль</h2>
-        <Card className="p-4">
+        <Card className="p-4" variant="elevated">
           <div className="grid gap-4 sm:grid-cols-2">
             <Input id="pf-firstname" label="Имя" value={profileForm.firstName}
               onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })} />
@@ -137,7 +139,7 @@ export default function AdminSettings() {
             const wd = workingDays?.find((d) => d.dayOfWeek === dayOfWeek);
             const isEditing = editingDay?.dayOfWeek === dayOfWeek;
             return (
-              <Card key={dayOfWeek} className="flex items-center justify-between p-4">
+              <Card key={dayOfWeek} className="flex items-center justify-between p-4" variant="elevated">
                 <div className="flex items-center gap-4">
                   <p className="min-w-[32px] font-body text-sm font-medium text-text-primary">{name}</p>
                   {isEditing ? (
@@ -187,7 +189,7 @@ export default function AdminSettings() {
       {/* SEO */}
       <div>
         <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">SEO</h2>
-        <Card className="p-4">
+        <Card className="p-4" variant="elevated">
           <div className="grid gap-4">
             <Input id="seo-title" label="Название сайта (title)" placeholder="Барбершоп в Москве | BarberPRO"
               value={seo.title} onChange={(e) => setSeo({ ...seo, title: e.target.value })} />
@@ -212,7 +214,7 @@ export default function AdminSettings() {
       {/* Social Networks */}
       <div>
         <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Социальные сети</h2>
-        <Card className="p-4">
+        <Card className="p-4" variant="elevated">
           <div className="grid gap-4 sm:grid-cols-3">
             <Input id="soc-insta" label="Instagram" placeholder="@username" value={social.instagram}
               onChange={(e) => setSocial({ ...social, instagram: e.target.value })} />

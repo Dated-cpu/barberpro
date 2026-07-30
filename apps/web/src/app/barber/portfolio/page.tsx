@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -83,14 +84,13 @@ export default function PortfolioPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Портфолио</h1>
+      <PageHeader title="Портфолио" action={
         <div className="flex gap-2">
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
           <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} loading={uploading}>Загрузить фото</Button>
           <Button onClick={() => setShowCreate(true)} size="sm">Добавить работу</Button>
         </div>
-      </div>
+      } />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Новая работа">
         <form onSubmit={(e) => { e.preventDefault(); createMut.mutate({ title, description: description || null, imageIds: [] }); }} className="flex flex-col gap-4">

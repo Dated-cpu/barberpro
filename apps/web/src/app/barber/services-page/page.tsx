@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
+import { PageHeader } from '@/components/shared/page-header';
 
 export default function ServicesPage() {
   const { addToast } = useToast();
@@ -49,10 +50,9 @@ export default function ServicesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">Услуги</h1>
+      <PageHeader title="Услуги" action={
         <Button onClick={() => { setEditingId(null); resetForm(); setShowCreate(true); }} size="sm">Создать услугу</Button>
-      </div>
+      } />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title={editingId ? 'Редактировать услугу' : 'Новая услуга'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
