@@ -73,31 +73,12 @@ export const dashboardService = {
 
     const [
       todayStats,
-      weeklyCompleted,
+      monthAppointments,
       totalClients,
-      weeklyAppointments,
-      monthlyFullAppointments,
       tomorrowAppointments,
       newReviews,
     ] = await Promise.all([
       this.getTodayStats(barberId, now),
-      prisma.appointment.count({
-        where: { barberId, startTime: { gte: weekAgo }, deletedAt: null, status: 'COMPLETED' },
-      }),
-      prisma.appointment.groupBy({
-        by: ['clientId'],
-        where: { barberId, deletedAt: null },
-        _count: { clientId: true },
-      }),
-      prisma.appointment.findMany({
-        where: {
-          barberId,
-          startTime: { gte: weekAgo },
-          deletedAt: null,
-          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        },
-        select: { priceAtBooking: true },
-      }),
       prisma.appointment.findMany({
         where: {
           barberId,
@@ -105,7 +86,12 @@ export const dashboardService = {
           deletedAt: null,
           status: { notIn: ['CANCELLED', 'NO_SHOW'] },
         },
-        select: { priceAtBooking: true },
+        select: { priceAtBooking: true, status: true, startTime: true },
+      }),
+      prisma.appointment.groupBy({
+        by: ['clientId'],
+        where: { barberId, deletedAt: null },
+        _count: { clientId: true },
       }),
       prisma.appointment.count({
         where: {
@@ -124,10 +110,12 @@ export const dashboardService = {
       }),
     ]);
 
-    const weeklyRevenue = weeklyAppointments.reduce((s, a) => s + Number(a.priceAtBooking), 0);
-    const monthlyAppts = monthlyFullAppointments.length;
+    const weekMonthAppointments = monthAppointments.filter((a) => a.startTime >= weekAgo);
+    const weeklyRevenue = weekMonthAppointments.reduce((s, a) => s + Number(a.priceAtBooking), 0);
+    const weeklyCompleted = weekMonthAppointments.filter((a) => a.status === 'COMPLETED').length;
+    const monthlyAppts = monthAppointments.length;
     const avgCheck = monthlyAppts > 0
-      ? monthlyFullAppointments.reduce((s, a) => s + Number(a.priceAtBooking), 0) / monthlyAppts
+      ? monthAppointments.reduce((s, a) => s + Number(a.priceAtBooking), 0) / monthlyAppts
       : 0;
 
     return {

@@ -27,15 +27,13 @@ export const portfolioService = {
         },
       });
 
-      for (let i = 0; i < data.imageIds.length; i++) {
-        await tx.portfolioImage.create({
-          data: {
-            portfolioId: portfolio.id,
-            mediaId: data.imageIds[i]!,
-            sortOrder: i,
-          },
-        });
-      }
+      await tx.portfolioImage.createMany({
+        data: data.imageIds.map((mediaId, i) => ({
+          portfolioId: portfolio.id,
+          mediaId,
+          sortOrder: i,
+        })),
+      });
 
       return tx.portfolio.findUnique({
         where: { id: portfolio.id },
@@ -78,14 +76,18 @@ export const portfolioService = {
       if (portfolio.barberId !== barberId) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
 
       const currentCount = await tx.portfolioImage.count({ where: { portfolioId } });
-      const images = await Promise.all(
-        imageIds.map((mediaId, i) =>
-          tx.portfolioImage.create({
-            data: { portfolioId, mediaId, sortOrder: currentCount + i },
-            include: { media: { select: { id: true, url: true, thumbnailUrl: true, alt: true } } },
-          }),
-        ),
-      );
+      await tx.portfolioImage.createMany({
+        data: imageIds.map((mediaId, i) => ({
+          portfolioId,
+          mediaId,
+          sortOrder: currentCount + i,
+        })),
+      });
+      const images = await tx.portfolioImage.findMany({
+        where: { portfolioId },
+        orderBy: { sortOrder: 'asc' },
+        include: { media: { select: { id: true, url: true, thumbnailUrl: true, alt: true } } },
+      });
       return images;
     });
   },
