@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { trpc } from '@/trpc/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -110,29 +111,40 @@ export function UpcomingAppointmentCard({ appointment, onCancelled }: UpcomingAp
         </p>
       </div>
 
-      {canCancel ? (
-        <div className="mt-4">
-          {showConfirm ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleCancel}
-                loading={cancelMutation.isPending}
-              >
-                Да, отменить
+      <div className="mt-4 flex flex-wrap gap-2">
+        {canCancel ? (
+          <>
+            {showConfirm ? (
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleCancel}
+                  loading={cancelMutation.isPending}
+                >
+                  Да, отменить
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowConfirm(false)}>
+                  Нет
+                </Button>
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setShowConfirm(true)}>
+                Отменить запись
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowConfirm(false)}>
-                Нет
-              </Button>
-            </div>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={() => setShowConfirm(true)}>
-              Отменить запись
-            </Button>
-          )}
-        </div>
-      ) : null}
+            )}
+          </>
+        ) : null}
+        <Link
+          href="/booking"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-accent/30 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent-muted"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Записаться ещё
+        </Link>
+      </div>
     </div>
   );
 }
@@ -155,9 +167,12 @@ export function UpcomingAppointmentEmpty() {
   return (
     <div className="rounded-xl border border-border bg-bg-secondary p-4 sm:p-5">
       <h3 className="mb-1 font-display text-base font-semibold text-text-primary">Ближайшая запись</h3>
-      <p className="text-sm text-text-tertiary font-body">
+      <p className="text-sm text-text-tertiary font-body mb-3">
         У вас нет предстоящих записей
       </p>
+      <Link href="/booking">
+        <Button size="sm">Записаться</Button>
+      </Link>
     </div>
   );
 }

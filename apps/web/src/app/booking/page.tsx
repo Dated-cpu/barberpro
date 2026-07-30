@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { trpc } from '@/trpc/client';
 import { SectionTitle } from '@/components/shared/section-title';
 import { Button } from '@/components/ui/button';
@@ -143,6 +144,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 export default function BookingPage() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('service');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -164,6 +166,17 @@ export default function BookingPage() {
   const createAppointment = trpc.appointment.create.useMutation();
 
   const barber = useMemo(() => barbers?.[0] ?? null, [barbers]);
+
+  // Repeat booking: pre-select services from query param
+  useEffect(() => {
+    const servicesParam = searchParams.get('services');
+    if (servicesParam) {
+      const ids = servicesParam.split(',').filter(Boolean);
+      if (ids.length > 0) {
+        setSelectedServiceIds(ids);
+      }
+    }
+  }, [searchParams]);
   const selectedServices = useMemo(
     () => services?.filter((s) => selectedServiceIds.includes(s.id)) ?? [],
     [services, selectedServiceIds],
@@ -333,14 +346,27 @@ export default function BookingPage() {
                 })}
                 {selectedServiceIds.length > 0 && (
                   <div className="mt-4 rounded-xl border border-accent/30 bg-accent-muted/50 p-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-text-secondary font-body">Всего:</span>
-                      <span className="font-semibold text-text-primary font-body">
-                        {totalDuration} мин · {totalPrice.toLocaleString('ru-RU')} ₽
-                      </span>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                        {selectedServices.map((s, idx) => (
+                          <span key={s.id} className="flex items-center gap-2">
+                            {idx > 0 && <span className="text-text-tertiary">+</span>}
+                            <span className="font-medium text-text-primary font-body">{s.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-accent/20">
+                        <span className="text-text-secondary font-body">Итого:</span>
+                        <span className="font-semibold text-text-primary font-body">
+                          {totalDuration} мин · {totalPrice.toLocaleString('ru-RU')} ₽
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
+                <p className="text-xs text-text-tertiary font-body text-center mt-1">
+                  Ваш визит займёт примерно {totalDuration} минут
+                </p>
                 <Button
                   onClick={() => setStep('date')}
                   className="mt-2"
@@ -460,8 +486,11 @@ export default function BookingPage() {
                     </span>
                   </div>
                 </div>
+                <p className="mt-2 text-xs text-text-tertiary font-body">
+                  Ваш визит займёт примерно {totalDuration} минут
+                </p>
                 {selectedDate && selectedSlot && (
-                  <p className="mt-2 text-xs text-text-tertiary font-body">
+                  <p className="mt-1 text-xs text-text-tertiary font-body">
                     {formatDateFull(`${selectedDate}T${selectedSlot}:00+03:00`)} в {selectedSlot.slice(0, 5)}
                   </p>
                 )}

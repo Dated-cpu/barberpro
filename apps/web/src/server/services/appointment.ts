@@ -323,9 +323,11 @@ export const appointmentService = {
       });
 
       const completed = allAppointments.filter((a) => a.status === 'COMPLETED');
+      const cancelled = allAppointments.filter((a) => a.status === 'CANCELLED');
       const totalVisits = completed.length;
       const totalSpent = completed.reduce((sum, a) => sum.add(a.priceAtBooking), new Decimal(0));
       const firstVisitDate = allAppointments.length > 0 ? allAppointments[0]!.startTime : null;
+      const lastVisitDate = completed.length > 0 ? completed[completed.length - 1]!.startTime : null;
 
       const serviceCount: Record<string, { name: string; count: number }> = {};
       for (const a of allAppointments) {
@@ -351,7 +353,10 @@ export const appointmentService = {
       return {
         totalVisits,
         totalSpent: Number(totalSpent),
+        avgCheck: totalVisits > 0 ? Math.round(Number(totalSpent) / totalVisits) : 0,
         firstVisitDate,
+        lastVisitDate,
+        cancelledCount: cancelled.length,
         favoriteService,
         favoriteBarber,
       };

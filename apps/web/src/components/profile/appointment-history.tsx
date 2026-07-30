@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { trpc } from '@/trpc/client';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Ожидает',
@@ -39,13 +41,12 @@ interface HistoryItem {
   barber: { id: string; firstName: string; lastName: string };
 }
 
-interface AppointmentHistoryProps {
-  onRebook?: (serviceId: string) => void;
-}
+type FilterPeriod = 'all' | 'month' | 'year';
 
-export function AppointmentHistory({ onRebook: _onRebook }: AppointmentHistoryProps) {
+export function AppointmentHistory() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allItems, setAllItems] = useState<HistoryItem[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('all');
 
   const { data, isPending } = trpc.appointment.myHistory.useQuery(
     { limit: 10, cursor },
@@ -62,15 +63,35 @@ export function AppointmentHistory({ onRebook: _onRebook }: AppointmentHistoryPr
     }
   }, [data, cursor]);
 
+  const filteredItems = allItems.filter((a) => {
+    if (filterPeriod === 'all') return true;
+    const date = new Date(a.startTime);
+    const now = new Date();
+    if (filterPeriod === 'month') {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      return date >= monthAgo;
+    }
+    if (filterPeriod === 'year') {
+      const yearAgo = new Date(now);
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      return date >= yearAgo;
+    }
+    return true;
+  });
+
   if (isPending && allItems.length === 0) {
     return <HistorySkeleton />;
   }
 
   if (allItems.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-bg-secondary p-4 sm:p-5">
+      <div className="rounded-xl border border-border bg-bg-secondary p-4 sm:p-5 text-center">
         <h3 className="mb-1 font-display text-base font-semibold text-text-primary">История записей</h3>
-        <p className="text-sm text-text-tertiary font-body">У вас пока нет записей</p>
+        <p className="text-sm text-text-tertiary font-body mb-3">У вас пока нет записей</p>
+        <Link href="/booking">
+          <Button size="sm">Записаться впервые</Button>
+        </Link>
       </div>
     );
   }
@@ -79,43 +100,77 @@ export function AppointmentHistory({ onRebook: _onRebook }: AppointmentHistoryPr
 
   return (
     <div className="rounded-xl border border-border bg-bg-secondary p-4 sm:p-5">
-      <h3 className="mb-4 font-display text-base font-semibold text-text-primary">История записей</h3>
-
-      <div className="space-y-3">
-        {allItems.map((a) => {
-          const start = new Date(a.startTime);
-          const dateStr = start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
-          const timeStr = start.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
-          return (
-            <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated p-3 sm:px-4">
-              <div className="min-w-0 flex-1">
-                <div>
-                  {(a.appointmentServices?.length ?? 0) > 1
-                    ? a.appointmentServices!.map((as) => (
-                        <p key={as.id} className="truncate text-sm font-medium text-text-primary font-body">
-                          {as.service.name}
-                        </p>
-                      ))
-                    : <p className="truncate text-sm font-medium text-text-primary font-body">{a.service.name}</p>
-                  }
-                </div>
-                <p className="truncate text-xs text-text-secondary font-body">
-                  {a.barber.firstName} {a.barber.lastName} &middot; {dateStr} в {timeStr}
-                </p>
-                <p className="text-xs text-text-tertiary font-body">
-                  {Number(a.priceAtBooking).toLocaleString('ru-RU')} ₽
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <span className={`text-xs font-medium font-body ${statusColors[a.status] || 'text-text-tertiary'}`}>
-                  {statusLabels[a.status] || a.status}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display text-base font-semibold text-text-primary">История записей</h3>
+        <div className="flex gap-1 rounded-lg border border-border bg-bg-elevated p-0.5">
+          {(['all', 'month', 'year'] as FilterPeriod[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setFilterPeriod(p)}
+              className={cn(
+                'rounded-md px-2.5 py-1 text-xs font-body transition-colors',
+                filterPeriod === p ? 'bg-accent text-text-inverse' : 'text-text-secondary hover:text-text-primary',
+              )}
+            >
+              {p === 'all' ? 'Все' : p === 'month' ? 'Месяц' : 'Год'}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {filteredItems.length === 0 ? (
+        <p className="text-sm text-text-tertiary font-body text-center py-6">
+          Нет записей за выбранный период
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {filteredItems.map((a) => {
+            const start = new Date(a.startTime);
+            const dateStr = start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+            const timeStr = start.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+            return (
+              <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated p-3 sm:px-4">
+                <div className="min-w-0 flex-1">
+                  <div>
+                    {(a.appointmentServices?.length ?? 0) > 1
+                      ? a.appointmentServices!.map((as) => (
+                          <p key={as.id} className="truncate text-sm font-medium text-text-primary font-body">
+                            {as.service.name}
+                          </p>
+                        ))
+                      : <p className="truncate text-sm font-medium text-text-primary font-body">{a.service.name}</p>
+                    }
+                  </div>
+                  <p className="truncate text-xs text-text-secondary font-body">
+                    {a.barber.firstName} {a.barber.lastName} &middot; {dateStr} в {timeStr}
+                  </p>
+                  <p className="text-xs text-text-tertiary font-body">
+                    {Number(a.priceAtBooking).toLocaleString('ru-RU')} ₽
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span className={cn('text-xs font-medium font-body', statusColors[a.status] || 'text-text-tertiary')}>
+                    {statusLabels[a.status] || a.status}
+                  </span>
+                  {a.status === 'COMPLETED' && (
+                    <Link
+                      href={`/booking?services=${encodeURIComponent(
+                        (a.appointmentServices?.length ?? 0) > 0
+                          ? a.appointmentServices!.map((as) => as.serviceId).join(',')
+                          : a.service.id,
+                      )}`}
+                      className="text-[10px] text-accent underline-offset-2 hover:underline font-body"
+                    >
+                      Повторить запись
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {hasMore ? (
         <div className="mt-4 text-center">
