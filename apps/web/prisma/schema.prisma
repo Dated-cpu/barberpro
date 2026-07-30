@@ -101,6 +101,7 @@ model User {
   firstName     String
   lastName      String
   role          UserRole  @default(CLIENT)
+  roleChangedAt DateTime? @db.Timestamptz // когда была последняя смена роли
   isActive      Boolean   @default(true)
   emailVerified           Boolean   @default(false)
   phoneVerified           Boolean   @default(false)
@@ -136,6 +137,12 @@ model User {
   // Индексы
   @@index([role, isActive])
   // Поиск активных пользователей по роли — быстрый список барберов/админов на публичной странице.
+
+  @@index([resetPasswordExpiresAt])
+  // Очистка просроченных токенов сброса пароля.
+
+  @@index([verificationTokenExpiresAt])
+  // Очистка просроченных токенов подтверждения email.
 
   @@index([deletedAt])
   // Исключение мягко удалённых записей из всех запросов.

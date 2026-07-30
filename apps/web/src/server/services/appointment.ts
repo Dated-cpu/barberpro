@@ -9,6 +9,8 @@ import { dispatchEvent, EventTypes } from '../lib/events';
 import logger from '../lib/logger';
 import { NotFoundError, ConflictError } from '../lib/errors';
 import { assertAppointmentAccess, assertBarberOrAdmin } from '../auth/authorization';
+import { auditService } from './audit';
+import { AuditEvent } from '@/server/security/audit/events';
 import type { AuthUser } from '../auth/authorization';
 
 import type { TxClient } from '../db/helpers';
@@ -157,6 +159,8 @@ export const appointmentService = {
         payload: { appointmentId },
       });
 
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.APPOINTMENT_CONFIRMED, entityType: 'Appointment', entityId: appointmentId });
+
       logger.info('Appointment confirmed', { appointmentId });
       return updated;
     });
@@ -191,6 +195,8 @@ export const appointmentService = {
         payload: { appointmentId, cancelledBy, reason: reason ?? null },
       });
 
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.APPOINTMENT_CANCELLED, entityType: 'Appointment', entityId: appointmentId, metadata: { cancelledBy, reason: reason ?? null } });
+
       logger.info('Appointment cancelled', { appointmentId, cancelledBy });
       return updated;
     });
@@ -216,6 +222,8 @@ export const appointmentService = {
         payload: { appointmentId },
       });
 
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.APPOINTMENT_COMPLETED, entityType: 'Appointment', entityId: appointmentId });
+
       logger.info('Appointment completed', { appointmentId });
       return updated;
     });
@@ -233,6 +241,8 @@ export const appointmentService = {
       }
 
       const updated = await appointmentRepository.updateStatus(tx, appointmentId, 'NO_SHOW');
+
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.APPOINTMENT_NO_SHOW, entityType: 'Appointment', entityId: appointmentId });
 
       logger.info('Appointment marked no-show', { appointmentId });
       return updated;
@@ -277,6 +287,8 @@ export const appointmentService = {
       if (notes !== undefined) data.notes = notes;
 
       const updated = await appointmentRepository.updateStatus(tx, appointmentId, status, data);
+
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.APPOINTMENT_STATUS_CHANGED, entityType: 'Appointment', entityId: appointmentId, metadata: { newStatus: status } });
       return updated;
     });
   },
@@ -298,10 +310,13 @@ export const appointmentService = {
         throw new ConflictError('Это время уже занято');
       }
 
-      return tx.appointment.update({
+      const updated = await tx.appointment.update({
         where: { id: appointmentId },
         data: { startTime, endTime },
       });
+
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.APPOINTMENT_RESCHEDULED, entityType: 'Appointment', entityId: appointmentId, metadata: { newStartTime: startTime.toISOString() } });
+      return updated;
     });
   },
 };

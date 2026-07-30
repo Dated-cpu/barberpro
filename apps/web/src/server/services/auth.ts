@@ -13,6 +13,7 @@ import type { RegisterInput, UpdateProfileInput } from '@/validators/auth';
 import crypto from 'node:crypto';
 import { auditService } from './audit';
 import { mediaService } from './media';
+import { AuditEvent } from '@/server/security/audit/events';
 
 const REFRESH_TOKEN_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_TOKEN_REMEMBER_EXPIRES_MS = 30 * 24 * 60 * 60 * 1000;
@@ -112,12 +113,14 @@ export const authService = {
 
       const valid = await verifyPassword(password, user.passwordHash);
       if (!valid) {
+        await auditService.log(tx, { action: AuditEvent.LOGIN_FAILED, entityType: 'User', entityId: user.id, metadata: { login }, ip: ip ?? undefined, userAgent: userAgent ?? undefined });
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' });
       }
 
       await userRepository.updateLastLogin(tx, user.id);
       const tokens = await this.createTokens(tx, user.id, user.role, rememberMe, device, ip, userAgent);
 
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.LOGIN_SUCCESS, entityType: 'User', entityId: user.id, ip: ip ?? undefined, userAgent: userAgent ?? undefined });
       logger.info('User logged in', { userId: user.id });
       return { user: toAuthUser(user), tokens };
     });
@@ -138,6 +141,9 @@ export const authService = {
       if (!storedToken || storedToken.revokedAt) {
         if (storedToken?.family) {
           await tokenRepository.revokeFamily(tx, storedToken.family);
+          await sessionRepository.revokeAllByUserId(tx, payload.userId);
+          await auditService.log(tx, { actorId: payload.userId, action: AuditEvent.TOKEN_REUSE_DETECTED, entityType: 'RefreshToken', entityId: storedToken.id, metadata: { family: storedToken.family } });
+          logger.warn('Refresh token reuse detected — all sessions revoked', { userId: payload.userId, family: storedToken.family });
         }
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Token revoked or reused' });
       }
@@ -210,13 +216,7 @@ export const authService = {
 
       await tokenRepository.revokeAllByUserId(tx, user.id);
 
-      await auditService.log(tx, {
-        actorId: user.id,
-        action: 'password.reset',
-        entityType: 'User',
-        entityId: user.id,
-      });
-
+      await auditService.log(tx, { actorId: user.id, action: AuditEvent.PASSWORD_RESET, entityType: 'User', entityId: user.id });
       logger.info('Password reset completed', { userId: user.id });
     });
   },
@@ -318,6 +318,7 @@ export const authService = {
 
       await tokenRepository.revokeAllByUserId(tx, userId);
 
+      await auditService.log(tx, { actorId: userId, action: AuditEvent.PASSWORD_CHANGED, entityType: 'User', entityId: userId });
       logger.info('Password changed', { userId });
     });
   },
