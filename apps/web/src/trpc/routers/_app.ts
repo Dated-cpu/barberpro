@@ -13,6 +13,7 @@ import { reviewsRouter } from './reviews';
 import { settingsRouter } from './settings';
 import { mediaRouter } from './media';
 import { notificationsRouter } from './notifications';
+import { auditRouter } from './audit';
 
 export const appRouter = router({
   auth: authRouter,
@@ -29,6 +30,7 @@ export const appRouter = router({
   settings: settingsRouter,
   media: mediaRouter,
   notifications: notificationsRouter,
+  audit: auditRouter,
 });
 
 export type AppRouter = typeof appRouter;

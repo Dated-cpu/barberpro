@@ -23,6 +23,7 @@ export interface Context {
   userAgent: string | null;
   responseCookies: Map<string, string>;
   cookies: Map<string, string>;
+  reqHeaders: Record<string, string | string[] | undefined>;
 }
 
 interface CreateContextOptions {
@@ -96,5 +97,5 @@ export async function createContext(opts: CreateContextOptions): Promise<Context
     }
   }
 
-  return { user, requestId, ip, userAgent, responseCookies, cookies };
+  return { user, requestId, ip, userAgent, responseCookies, cookies, reqHeaders: req.headers };
 }

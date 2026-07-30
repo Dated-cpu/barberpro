@@ -6,6 +6,7 @@ import { userRepository } from '@/server/repositories/user';
 import { COOKIE_NAMES, setCookie, clearCookie, parseMaxAge } from '@/server/lib/cookies';
 import { env } from '@/server/config/env';
 import { rateLimit } from '@/server/security/rate-limit';
+import { createCsrfCookie } from '@/server/security/csrf';
 
 const ACCESS_MAX_AGE = parseMaxAge(env.JWT_ACCESS_EXPIRES_IN);
 const REFRESH_MAX_AGE = parseMaxAge(env.JWT_REFRESH_EXPIRES_IN);
@@ -27,6 +28,11 @@ function clearAuthCookies(ctx: { responseCookies: Map<string, string> }) {
   ctx.responseCookies.set(COOKIE_NAMES.REFRESH_TOKEN, clearCookie(COOKIE_NAMES.REFRESH_TOKEN));
 }
 
+function setCsrfCookie(ctx: { responseCookies: Map<string, string> }) {
+  const csrf = createCsrfCookie();
+  ctx.responseCookies.set(csrf.name, csrf.cookie);
+}
+
 export const authRouter = router({
   register: publicProcedure
     .input(registerSchema)
@@ -38,6 +44,7 @@ export const authRouter = router({
       });
       const result = await authService.register(input);
       setAuthCookies(ctx, result.tokens);
+      setCsrfCookie(ctx);
       return { user: result.user };
     }),
 
@@ -57,6 +64,7 @@ export const authRouter = router({
         ctx.ip ?? undefined,
       );
       setAuthCookies(ctx, result.tokens, input.rememberMe);
+      setCsrfCookie(ctx);
       return { user: result.user };
     }),
 
@@ -66,6 +74,7 @@ export const authRouter = router({
       if (!refreshToken) throw new Error('No refresh token');
       const tokens = await authService.refresh(refreshToken);
       setAuthCookies(ctx, tokens);
+      setCsrfCookie(ctx);
       return { success: true };
     }),
 

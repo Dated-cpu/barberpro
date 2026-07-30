@@ -33,7 +33,7 @@ export function validateCsrfToken(
 
 export function createCsrfCookie(): { name: string; value: string; cookie: string } {
   const token = generateCsrfToken();
-  const cookie = `${CSRF_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict; Secure`;
+  const cookie = `${CSRF_COOKIE_NAME}=${token}; Path=/; SameSite=Strict; Secure`;
   return { name: CSRF_COOKIE_NAME, value: token, cookie };
 }
 

@@ -29,6 +29,7 @@ export enum Permission {
   DASHBOARD_ANALYTICS = 'dashboard:analytics',
   ADMIN_PANEL = 'admin:panel',
   CLIENT_MANAGE = 'client:manage',
+  AUDIT_VIEW = 'audit:view',
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -90,6 +91,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DASHBOARD_ANALYTICS,
     Permission.ADMIN_PANEL,
     Permission.CLIENT_MANAGE,
+    Permission.AUDIT_VIEW,
   ],
   SUPER_ADMIN: [
     Permission.APPOINTMENT_READ,
@@ -120,6 +122,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DASHBOARD_ANALYTICS,
     Permission.ADMIN_PANEL,
     Permission.CLIENT_MANAGE,
+    Permission.AUDIT_VIEW,
   ],
 };
 

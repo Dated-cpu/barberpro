@@ -1,6 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import prisma from '../db/client';
 import type { Prisma } from '@prisma/client';
+import { auditService } from './audit';
+import { AuditEvent } from '@/server/security/audit/events';
+import { transaction } from '../db/helpers';
 
 export const adminService = {
   async listAllAppointments(opts: { status?: string; barberId?: string; limit?: number; cursor?: string; from?: Date; to?: Date }) {
@@ -124,5 +127,39 @@ export const adminService = {
       })),
       nextCursor: hasMore ? items[items.length - 1]?.id ?? null : null,
     };
+  },
+
+  async updateUserRole(actorId: string, targetUserId: string, newRole: string) {
+    return transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: targetUserId, deletedAt: null } });
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      if (user.role === newRole) {
+        return user;
+      }
+
+      const oldRole = user.role;
+      const updated = await tx.user.update({
+        where: { id: targetUserId },
+        data: {
+          role: newRole as Prisma.UserUpdateInput['role'],
+          roleChangedAt: new Date(),
+          roleChangedBy: actorId,
+        },
+      });
+
+      await auditService.log(tx, {
+        actorId,
+        action: AuditEvent.ROLE_CHANGED,
+        entityType: 'User',
+        entityId: targetUserId,
+        oldValue: { role: oldRole },
+        newValue: { role: newRole },
+      });
+
+      return updated;
+    });
   },
 };

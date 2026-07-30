@@ -102,6 +102,7 @@ model User {
   lastName      String
   role          UserRole  @default(CLIENT)
   roleChangedAt DateTime? @db.Timestamptz // когда была последняя смена роли
+  roleChangedBy String?   @db.Uuid        // кто сменил роль (actorId)
   isActive      Boolean   @default(true)
   emailVerified           Boolean   @default(false)
   phoneVerified           Boolean   @default(false)
