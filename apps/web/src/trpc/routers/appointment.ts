@@ -118,6 +118,12 @@ export const appointmentRouter = router({
       return appointment;
     }),
 
+  myUpcomingList: protectedProcedure
+    .query(async ({ ctx }) => {
+      const appointments = await appointmentService.getMyUpcomingList(ctx.user!.id);
+      return appointments;
+    }),
+
   myHistory: protectedProcedure
     .input(clientAppointmentsSchema)
     .query(async ({ ctx, input }) => {

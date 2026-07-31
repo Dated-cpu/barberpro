@@ -293,6 +293,12 @@ export const appointmentService = {
     });
   },
 
+  async getMyUpcomingList(clientId: string) {
+    return transaction(async (tx) => {
+      return appointmentRepository.findUpcomingListByClient(tx, clientId);
+    });
+  },
+
   async getMyHistory(clientId: string, opts?: { limit?: number; cursor?: string }) {
     return transaction(async (tx) => {
       return appointmentRepository.findHistoryByClient(tx, clientId, opts);
@@ -329,15 +335,15 @@ export const appointmentService = {
       const firstVisitDate = allAppointments.length > 0 ? allAppointments[0]!.startTime : null;
       const lastVisitDate = completed.length > 0 ? completed[completed.length - 1]!.startTime : null;
 
-      const serviceCount: Record<string, { name: string; count: number }> = {};
+      const serviceCount: Record<string, { id: string; name: string; count: number }> = {};
       for (const a of allAppointments) {
         if (a.appointmentServices && a.appointmentServices.length > 0) {
           for (const as of a.appointmentServices) {
-            if (!serviceCount[as.serviceId]) serviceCount[as.serviceId] = { name: as.service.name, count: 0 };
+            if (!serviceCount[as.serviceId]) serviceCount[as.serviceId] = { id: as.serviceId, name: as.service.name, count: 0 };
             serviceCount[as.serviceId]!.count++;
           }
         } else {
-          if (!serviceCount[a.service.id]) serviceCount[a.service.id] = { name: a.service.name, count: 0 };
+          if (!serviceCount[a.service.id]) serviceCount[a.service.id] = { id: a.service.id, name: a.service.name, count: 0 };
           serviceCount[a.service.id]!.count++;
         }
       }
@@ -350,6 +356,13 @@ export const appointmentService = {
       }
       const favoriteBarber = Object.values(barberCount).sort((a, b) => b.count - a.count)[0] ?? null;
 
+      const lastCompleted = completed[completed.length - 1] ?? null;
+      const lastVisitServiceIds = lastCompleted
+        ? (lastCompleted.appointmentServices?.length > 0
+            ? lastCompleted.appointmentServices.map((as) => as.serviceId)
+            : [lastCompleted.service.id])
+        : [];
+
       return {
         totalVisits,
         totalSpent: Number(totalSpent),
@@ -359,6 +372,7 @@ export const appointmentService = {
         cancelledCount: cancelled.length,
         favoriteService,
         favoriteBarber,
+        lastVisitServiceIds,
       };
     });
   },

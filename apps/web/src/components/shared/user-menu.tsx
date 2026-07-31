@@ -56,7 +56,7 @@ function LogoutIcon() {
 
 const CLIENT_ITEMS: MenuItem[] = [
   { href: '/profile', label: 'Профиль', icon: <UserIcon /> },
-  { href: '/profile', label: 'История записей', icon: <CalendarIcon /> },
+  { href: '/profile?tab=history', label: 'История записей', icon: <CalendarIcon /> },
 ];
 
 const ROLE_ITEMS: Partial<Record<AuthUser['role'], MenuItem[]>> = {
