@@ -16,7 +16,7 @@ function getRedirectPath(role: string): string {
     case 'BARBER':
       return '/barber';
     default:
-      return '/profile';
+      return '/';
   }
 }
 

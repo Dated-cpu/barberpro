@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { UserMenu } from '@/components/shared/user-menu';
 
 const navLinks = [
   { href: '/', label: 'Главная' },
@@ -46,12 +47,7 @@ export function Header() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link href="/profile" className="rounded-lg px-4 py-2 text-sm font-body text-text-secondary hover:text-accent transition-colors">
-              Профиль
-            </Link>
-            <Link href="/auth/login">
-              <Button variant="ghost" size="sm">Войти</Button>
-            </Link>
+            <UserMenu />
             <Link href="/booking">
               <Button size="sm">Записаться</Button>
             </Link>
@@ -99,12 +95,7 @@ export function Header() {
               </Link>
             ))}
             <hr className="my-2 border-border" />
-            <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center rounded-lg px-4 min-h-11 text-sm font-body text-text-secondary hover:text-accent transition-colors">
-              Профиль
-            </Link>
-            <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-              <Button variant="ghost" className="w-full">Войти</Button>
-            </Link>
+            <UserMenu mobile onNavigate={() => setMobileOpen(false)} />
             <Link href="/booking" onClick={() => setMobileOpen(false)}>
               <Button className="w-full">Записаться</Button>
             </Link>
