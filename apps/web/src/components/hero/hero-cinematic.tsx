@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Reveal } from '@/components/shared/reveal';
 import { GoldThread } from '@/components/shared/gold-thread';
 import { Button } from '@/components/ui/button';
+import { PersonalWelcome } from '@/components/hero/personal-welcome';
 
 interface MasterInfo {
   name: string;
@@ -231,6 +232,8 @@ export function HeroCinematic({ backgroundImage, master }: HeroCinematicProps) {
               </Button>
             </Link>
           </Reveal>
+
+          <PersonalWelcome />
         </div>
       </div>
 
