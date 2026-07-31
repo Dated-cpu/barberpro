@@ -2,7 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GoldThread } from '@/components/shared/gold-thread';
-import { MobileBackButton } from '@/components/shared/mobile-back-button';
 import { SectionTitle } from '@/components/shared/section-title';
 import { Reveal } from '@/components/shared/reveal';
 
@@ -103,7 +102,6 @@ function StatCard({ value, label }: { value: string; label: string }) {
 export default function MasterPage() {
   return (
     <>
-      <MobileBackButton />
       {/* Hero */}
       <section className="relative flex min-h-[80vh] sm:min-h-screen items-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-obsidian via-obsidian to-espresso/60" />

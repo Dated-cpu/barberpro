@@ -35,15 +35,6 @@ function CalendarIcon() {
   );
 }
 
-function PlusIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
 function SettingsIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -64,10 +55,8 @@ function LogoutIcon() {
 }
 
 const CLIENT_ITEMS: MenuItem[] = [
-  { href: '/profile', label: 'Личный кабинет', icon: <UserIcon /> },
-  { href: '/profile', label: 'Мои записи', icon: <CalendarIcon /> },
-  { href: '/booking', label: 'Новая запись', icon: <PlusIcon /> },
-  { href: '/profile', label: 'Настройки профиля', icon: <SettingsIcon /> },
+  { href: '/profile', label: 'Профиль', icon: <UserIcon /> },
+  { href: '/profile', label: 'История записей', icon: <CalendarIcon /> },
 ];
 
 const ROLE_ITEMS: Partial<Record<AuthUser['role'], MenuItem[]>> = {
@@ -138,7 +127,7 @@ export function UserMenu({ mobile = false, onNavigate }: UserMenuProps) {
   };
 
   if (isLoading) {
-    return <Skeleton className="h-11 w-28" />;
+    return <Skeleton className="h-11 w-11 sm:w-28" />;
   }
 
   if (!user) {
@@ -156,7 +145,7 @@ export function UserMenu({ mobile = false, onNavigate }: UserMenuProps) {
     }
     return (
       <>
-        <Link href="/profile" className="rounded-lg px-4 py-2 text-sm font-body text-text-secondary hover:text-accent transition-colors">
+        <Link href="/profile" className="hidden md:inline rounded-lg px-4 py-2 text-sm font-body text-text-secondary hover:text-accent transition-colors">
           Профиль
         </Link>
         <Link href="/auth/login">
@@ -168,12 +157,19 @@ export function UserMenu({ mobile = false, onNavigate }: UserMenuProps) {
 
   const items = ROLE_ITEMS[user.role] ?? CLIENT_ITEMS;
   const name = user.firstName || user.email?.split('@')[0] || 'Клиент';
+  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.trim();
+
+  const avatar = (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-bg-elevated text-xs font-semibold text-accent font-body">
+      {initials || <UserIcon />}
+    </span>
+  );
 
   if (mobile) {
     return (
       <>
         <div className="flex items-center gap-2 rounded-lg px-4 min-h-11 text-sm font-semibold text-text-primary font-body">
-          <span className="text-accent"><UserIcon /></span>
+          {avatar}
           {name}
         </div>
         {items.map((item) => (
@@ -206,16 +202,17 @@ export function UserMenu({ mobile = false, onNavigate }: UserMenuProps) {
         onClick={() => setOpen(!open)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Профиль"
         className={cn(
-          'flex h-11 items-center gap-2 rounded-lg px-3 text-sm font-body transition-colors',
-          open ? 'text-accent bg-bg-tertiary' : 'text-text-secondary hover:text-accent',
+          'flex h-11 items-center gap-2 rounded-lg px-2 sm:px-3 text-sm font-body transition-colors',
+          open ? 'bg-bg-tertiary' : 'hover:bg-bg-tertiary',
         )}
       >
-        <UserIcon />
-        <span className="max-w-32 truncate font-medium text-text-primary">{name}</span>
+        {avatar}
+        <span className="hidden sm:block max-w-32 truncate font-medium text-text-primary">{name}</span>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          className={cn('transition-transform duration-200', open && 'rotate-180')}
+          className={cn('hidden sm:block text-text-tertiary transition-transform duration-200', open && 'rotate-180')}
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>

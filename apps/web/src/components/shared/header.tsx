@@ -46,9 +46,9 @@ export function Header() {
             ))}
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="flex items-center gap-1 sm:gap-3">
             <UserMenu />
-            <Link href="/booking">
+            <Link href="/booking" className="hidden md:block">
               <Button size="sm">Записаться</Button>
             </Link>
           </div>
