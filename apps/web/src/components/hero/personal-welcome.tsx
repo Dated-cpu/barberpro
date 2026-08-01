@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { trpc } from '@/trpc/client';
+import { useCurrentUser } from '@/lib/auth-context';
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -26,7 +27,7 @@ function QuickAction({ href, label, primary }: { href: string; label: string; pr
 }
 
 export function PersonalWelcome() {
-  const { data: user, isLoading } = trpc.auth.me.useQuery(undefined, { retry: false });
+  const { user, isLoading } = useCurrentUser();
   const { data: upcoming, isPending: upcomingPending } = trpc.appointment.myUpcoming.useQuery();
 
   if (isLoading) {

@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/trpc/client';
 import { NotificationDropdown } from '@/components/notifications/notification-dropdown';
+import { useCurrentUser } from '@/lib/auth-context';
 import {
   useState, useRef, useEffect,
 } from 'react';
 
 export function DashboardHeader() {
   const router = useRouter();
-  const { data: user } = trpc.auth.me.useQuery();
+  const { user } = useCurrentUser();
   const utils = trpc.useUtils();
   const logoutMut = trpc.auth.logout.useMutation();
   const [profileOpen, setProfileOpen] = useState(false);

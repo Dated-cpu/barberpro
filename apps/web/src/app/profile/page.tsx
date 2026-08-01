@@ -2,13 +2,13 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { trpc } from '@/trpc/client';
 import { SectionTitle } from '@/components/shared/section-title';
 import { MobileBackButton } from '@/components/shared/mobile-back-button';
 import { OverviewTab } from '@/components/profile/overview-tab';
 import { UpcomingTab } from '@/components/profile/upcoming-tab';
 import { AppointmentHistory } from '@/components/profile/appointment-history';
 import { SettingsTab } from '@/components/profile/settings-tab';
+import { useCurrentUser } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
 type Tab = 'overview' | 'upcoming' | 'history' | 'settings';
@@ -83,15 +83,14 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>(() => getInitialTab(searchParams.get('tab')));
 
-  const { data: user, isLoading, error: userError } = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-  });
+  const { user, isLoading, isError } = useCurrentUser();
 
+  // Редирект только при подтверждённой ошибке сессии (AuthProvider уже попытался refresh)
   useEffect(() => {
-    if (!isLoading && (userError || !user)) {
+    if (!isLoading && isError) {
       router.push('/auth/login');
     }
-  }, [user, userError, isLoading, router]);
+  }, [isError, isLoading, router]);
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);

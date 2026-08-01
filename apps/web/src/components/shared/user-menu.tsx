@@ -7,6 +7,7 @@ import { trpc } from '@/trpc/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useCurrentUser } from '@/lib/auth-context';
 import type { AuthUser } from '@/types/auth';
 
 interface MenuItem {
@@ -83,7 +84,7 @@ interface UserMenuProps {
 export function UserMenu({ mobile = false, onNavigate }: UserMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: user, isLoading } = trpc.auth.me.useQuery(undefined, { retry: false });
+  const { user, isLoading } = useCurrentUser();
   const utils = trpc.useUtils();
   const logoutMut = trpc.auth.logout.useMutation();
   const [open, setOpen] = useState(false);
